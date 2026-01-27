@@ -1,0 +1,5 @@
+Name,Age,City,Status
+John Smith,30,New York,Active
+Jane Doe,25,Los Angeles,Active
+"Smith, Robert",45,"San Francisco, CA",Pending
+Alice Johnson,35,Chicago,Inactive
