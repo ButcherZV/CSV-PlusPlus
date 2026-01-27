@@ -1,0 +1,8 @@
+# Kompajlirani izvršni fajl
+CSVPlusPlus.exe
+
+# Kompajlirani resursi aplikacije
+app.res
+
+# Razni folderi
+build/

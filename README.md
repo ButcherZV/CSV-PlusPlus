@@ -69,7 +69,7 @@ The packaged application will be in `build\x64\` folder.
 
 ### Settings Menu
 
-- **Encoding** - Change file encoding (UTF-8, ANSI, UTF-16)
+- **Encoding** - Change file encoding (UTF-8, UTF-16, ANSI)
 - **Separator** - Change field separator (Comma, Semicolon, Tab, Custom)
 
 Changes to encoding and separator apply when saving the file.
@@ -94,11 +94,3 @@ The editor supports RFC 4180 compliant CSV files with:
 ## License
 
 Copyright (C) 2026
-
-## Test File
-
-A test CSV file (`test.csv`) is included demonstrating:
-- Header row
-- Regular fields
-- Quoted fields with embedded commas
-- Different data types

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSV++ Instructions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        h1 { color: #333; border-bottom: 2px solid #007ACC; padding-bottom: 10px; }
+        h2 { color: #007ACC; margin-top: 20px; }
+        ul { margin-left: 20px; }
+        li { margin-bottom: 8px; }
+        img { margin-right: 4px; }
+        .toolbar-btn { font-weight: bold; color: #007ACC; }
+    </style>
+</head>
+<body>
+    <h1>CSV++ - User Instructions</h1>
+    
+    <h2>File Menu</h2>
+    <ul>
+        <li><b>New (Ctrl+N)</b> - Create a new empty CSV file</li>
+        <li><b>Open (Ctrl+O)</b> - Open an existing CSV file</li>
+        <li><b>Save (Ctrl+S)</b> - Save the current file</li>
+        <li><b>Close</b> - Close the current file</li>
+        <li><b>Exit</b> - Exit the application</li>
+    </ul>
+    
+    <h2>Settings Menu</h2>
+    <ul>
+        <li><b>Encoding</b> - Choose file encoding (ANSI, UTF-8, UTF-16)</li>
+        <li><b>Separator</b> - Choose column separator (Comma, Semicolon, Tab, Custom)</li>
+        <li><b>Language</b> - Switch between English and Serbian</li>
+    </ul>
+    
+    <h2>Toolbar Buttons</h2>
+    <ul>
+        <li><img src="file.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">New</span> - Create a new empty table</li>
+        <li><img src="folder.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Open</span> - Open an existing CSV table</li>
+        <li><img src="device-floppy.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Save</span> - Save current table to CSV file</li>
+        <li><img src="undo.bmp" width="32" height="32" style="margin-top:-8px"> <img src="redo.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Undo/Redo</span> - Undo or redo your last actions</li>
+        <li><img src="row-insert-bottom.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Add Row Below</span> - Insert a new row below the selected cell</li>
+        <li><img src="row-insert-top.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Add Row Above</span> - Insert a new row above the selected cell</li>
+        <li><img src="row-remove.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Delete Row</span> - Delete the selected row</li>
+        <li><img src="column-insert-left.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Add Column Left</span> - Insert a new column to the left of selected cell</li>
+        <li><img src="column-insert-right.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Add Column Right</span> - Insert a new column to the right of selected cell</li>
+        <li><img src="column-remove.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Delete Column</span> - Delete the selected column</li>
+        <li><span class="toolbar-btn">Font Size</span> - Change the font size of the table (8-24)</li>
+    </ul>
+    
+    <h2>Right-Click Context Menu</h2>
+    <ul>
+        <li>Right-click on any cell to access quick row/column operations</li>
+        <li>All insert and delete operations are available from the context menu</li>
+    </ul>
+    
+    <h2>Editing Cells</h2>
+    <ul>
+        <li>Click on a cell to select it</li>
+        <li>Double-click or press Enter to edit the cell content</li>
+        <li>Double-click column headers to rename them</li>
+    </ul>
+    
+    <h2>Status Bar</h2>
+    <ul>
+        <li>Shows the number of rows and columns</li>
+        <li>Displays current encoding and separator</li>
+        <li>Shows selected cell coordinates in brackets [column,row]</li>
+    </ul>
+    
+    <h2>Tips</h2>
+    <ul>
+        <li>Your language preference is automatically saved</li>
+        <li>You can resize columns by dragging the column borders</li>
+        <li>Files can be opened by dragging and dropping them into the window</li>
+        <li>The application supports up to 50 undo/redo levels</li>
+    </ul>
+</body>
+</html>

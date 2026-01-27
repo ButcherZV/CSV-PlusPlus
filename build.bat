@@ -27,7 +27,7 @@ echo.
 REM Compile using MSYS2 environment with direct include/library paths
 echo Attempting build with wxWidgets...
 
-C:\msys64\ucrt64\bin\g++.exe -o CSVPlusPlus.exe src/main.cpp src/MainFrame.cpp src/CSVParser.cpp src/CSVOptionsDialog.cpp app.res ^
+C:\msys64\ucrt64\bin\g++.exe -o CSVPlusPlus.exe src/main.cpp src/MainFrame.cpp src/CSVParser.cpp src/CSVOptionsDialog.cpp src/Translations.cpp app.res ^
     -Iinclude ^
     -IC:/msys64/ucrt64/include/wx-3.2 ^
     -IC:/msys64/ucrt64/lib/wx/include/msw-unicode-3.2 ^
@@ -42,6 +42,7 @@ C:\msys64\ucrt64\bin\g++.exe -o CSVPlusPlus.exe src/main.cpp src/MainFrame.cpp s
     -static-libgcc ^
     -static-libstdc++ ^
     -LC:/msys64/ucrt64/lib ^
+    -lwx_mswu_html-3.2 ^
     -lwx_mswu_adv-3.2 ^
     -lwx_mswu_core-3.2 ^
     -lwx_baseu-3.2 ^
@@ -93,9 +94,9 @@ if !PACKAGE! equ 1 (
     
     if "!NEED_DLLS!"=="1" (
         echo Copying required DLLs...
-        copy C:\msys64\ucrt64\bin\libwinpthread-1.dll build\ 2>nul
-        copy C:\msys64\ucrt64\bin\libstdc++-6.dll build\ 2>nul
-        copy C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll build\ 2>nul
+        copy C:\msys64\ucrt64\bin\libwinpthread-1.dll build\ >nul 2>&1
+        if exist C:\msys64\ucrt64\bin\libstdc++-6.dll copy C:\msys64\ucrt64\bin\libstdc++-6.dll build\ >nul 2>&1
+        if exist C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll copy C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll build\ >nul 2>&1
     )
     
     echo Package created in build\

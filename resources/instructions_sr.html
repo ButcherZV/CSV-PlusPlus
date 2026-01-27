@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSV++ Uputstvo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        h1 { color: #333; border-bottom: 2px solid #007ACC; padding-bottom: 10px; }
+        h2 { color: #007ACC; margin-top: 20px; }
+        ul { margin-left: 20px; }
+        li { margin-bottom: 8px; }
+        img { margin-right: 4px; }
+        .toolbar-btn { font-weight: bold; color: #007ACC; }
+    </style>
+</head>
+<body>
+    <h1>CSV++ - Uputstvo za upotrebu</h1>
+    
+    <h2>Meni Fajl</h2>
+    <ul>
+        <li><b>Novo (Ctrl+N)</b> - Napravi novu praznu CSV datoteku</li>
+        <li><b>Otvori (Ctrl+O)</b> - Otvori postojeću CSV datoteku</li>
+        <li><b>Sačuvaj (Ctrl+S)</b> - Sačuvaj trenutnu datoteku</li>
+        <li><b>Zatvori</b> - Zatvori trenutnu datoteku</li>
+        <li><b>Izlaz</b> - Izađi iz aplikacije</li>
+    </ul>
+    
+    <h2>Meni Podešavanja</h2>
+    <ul>
+        <li><b>Kodiranje</b> - Izaberi kodiranje datoteke (ANSI, UTF-8, UTF-16)</li>
+        <li><b>Separator</b> - Izaberi separator kolona (Zapeta, Tačka-zapeta, Tab, Ostalo)</li>
+        <li><b>Jezik</b> - Prebaci između engleskog i srpskog jezika</li>
+    </ul>
+    
+    <h2>Dugmad na alatnoj traci</h2>
+    <ul>
+        <li><img src="file.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Novo</span> - stvaranje nove prazne tabele</li>
+        <li><img src="folder.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Otvori</span> - Otvori postojeću CSV tabelu</li>
+        <li><img src="device-floppy.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Sačuvaj</span> - Sačuvaj trenutnu tabelu u CSV fajl</li>
+        <li><img src="undo.bmp" width="32" height="32" style="margin-top:-8px"> <img src="redo.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Poništi/Ponovi</span> - Poništi ili ponovi poslednje akcije</li>
+        <li><img src="row-insert-bottom.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Dodaj red ispod</span> - Ubaci novi red ispod selektovane ćelije</li>
+        <li><img src="row-insert-top.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Dodaj red iznad</span> - Ubaci novi red iznad selektovane ćelije</li>
+        <li><img src="row-remove.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Obriši red</span> - Obriši selektovani red</li>
+        <li><img src="column-insert-left.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Dodaj kolonu levo</span> - Ubaci novu kolonu levo od selektovane ćelije</li>
+        <li><img src="column-insert-right.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Dodaj kolonu desno</span> - Ubaci novu kolonu desno od selektovane ćelije</li>
+        <li><img src="column-remove.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Obriši kolonu</span> - Obriši selektovanu kolonu</li>
+        <li><span class="toolbar-btn">Veličina fonta</span> - Promeni veličinu fonta tabele (8-24)</li>
+    </ul>
+    
+    <h2>Kontekst meni (desni klik)</h2>
+    <ul>
+        <li>Klikni desnim tasterom na bilo koju ćeliju za brzi pristup operacijama</li>
+        <li>Sve operacije dodavanja i brisanja kolona/redova su dostupne iz kontekstnog menija</li>
+    </ul>
+    
+    <h2>Uređivanje ćelija</h2>
+    <ul>
+        <li>Klikni na ćeliju da je selektuješ</li>
+        <li>Nakon selektovanja nije potrebno da pritisneš Enter ili sl, možete odmah početi sa unosom</li>
+        <li>Da bi promenili naziv kolone, dvaput kliknite na naziv kolone i otvoriće se prozor za unos novog naziva</li>
+    </ul>
+    
+    <h2>Statusna traka</h2>
+    <ul>
+        <li>Prikazuje broj redova i kolona u vašoj tabeli</li>
+        <li>Prikazuje trenutno kodiranje fajla i separator kolona</li>
+        <li>Prikazuje koordinate trenutno izabrane ćelije u zagradi - [kolona,red]</li>
+    </ul>
+    
+    <h2>Saveti</h2>
+    <ul>
+        <li>Izbor jezika se automatski čuva u memoriji računara</li>
+        <li>Širina kolone se može promeniti pomeranjem uspravne linije levo ili desno od naziva kolone</li>
+        <li>Datoteke mogu biti otvorene prevlačenjem u prozor aplikacije</li>
+        <li>Aplikacija pamti do 50 undo akcija</li>
+    </ul>
+</body>
+</html>

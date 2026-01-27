@@ -6,6 +6,7 @@
 #include <wx/dnd.h>
 #include <deque>
 #include "CSVParser.h"
+#include "Translations.h"
 
 // Structure to store grid state for undo/redo
 struct GridState {
@@ -37,6 +38,8 @@ private:
     wxGrid* grid;
     wxStatusBar* statusBar;
     wxToolBar* toolBar;
+    wxChoice* fontSizeChoice;
+    int currentFontSize;
     
     // File state
     wxString currentFile;
@@ -44,6 +47,7 @@ private:
     wxChar currentSeparator;
     bool isDirty;
     bool hasHeaderRow;
+    bool isRestoringState;
     
     // Undo/redo
     std::deque<GridState> undoStack;
@@ -51,10 +55,6 @@ private:
     const size_t MAX_UNDO_LEVELS = 50;
     
     // Language support
-    enum Language {
-        LANGUAGE_ENGLISH,
-        LANGUAGE_SERBIAN
-    };
     Language currentLanguage;
     
     // Menu IDs
@@ -65,8 +65,10 @@ private:
         ID_CLOSE,
         ID_UNDO,
         ID_REDO,
-        ID_ADD_ROW,
-        ID_ADD_COLUMN,
+        ID_ADD_ROW_BELOW,
+        ID_ADD_ROW_ABOVE,
+        ID_ADD_COLUMN_LEFT,
+        ID_ADD_COLUMN_RIGHT,
         ID_DELETE_ROW,
         ID_DELETE_COLUMN,
         ID_ENC_UTF8,
@@ -77,7 +79,10 @@ private:
         ID_SEP_TAB,
         ID_SEP_CUSTOM,
         ID_LANG_ENGLISH,
-        ID_LANG_SERBIAN
+        ID_LANG_SERBIAN,
+        ID_FONT_SIZE_CHOICE,
+        ID_HELP_INSTRUCTIONS,
+        ID_HELP_ABOUT
     };
     
     // UI Creation
@@ -95,8 +100,10 @@ private:
     // Edit operations
     void OnUndo(wxCommandEvent& event);
     void OnRedo(wxCommandEvent& event);
-    void OnAddRow(wxCommandEvent& event);
-    void OnAddColumn(wxCommandEvent& event);
+    void OnAddRowBelow(wxCommandEvent& event);
+    void OnAddRowAbove(wxCommandEvent& event);
+    void OnAddColumnLeft(wxCommandEvent& event);
+    void OnAddColumnRight(wxCommandEvent& event);
     void OnDeleteRow(wxCommandEvent& event);
     void OnDeleteColumn(wxCommandEvent& event);
     
@@ -104,13 +111,20 @@ private:
     void OnEncodingChange(wxCommandEvent& event);
     void OnSeparatorChange(wxCommandEvent& event);
     void OnLanguageChange(wxCommandEvent& event);
+    void OnFontSizeChange(wxCommandEvent& event);
+    
+    // Help
+    void OnInstructions(wxCommandEvent& event);
+    void OnAbout(wxCommandEvent& event);
     
     // Grid events
+    void OnEditorShown(wxGridEvent& event);
     void OnCellChanged(wxGridEvent& event);
     void OnLabelDoubleClick(wxGridEvent& event);
     void OnRightClick(wxGridEvent& event);
     void OnGridRightClick(wxGridEvent& event);
     void OnColSize(wxGridSizeEvent& event);
+    void OnSelectCell(wxGridEvent& event);
     
     // Helper methods
     void LoadCSVFile(const wxString& filename, Encoding encoding, 
@@ -126,7 +140,7 @@ private:
     bool PromptSaveChanges();
     void UpdateUndoRedoButtons();
     void UpdateUILanguage();
-    wxString Translate(const wxString& key);
+    void ApplyGridDimensions();
 };
 
 #endif // MAINFRAME_H

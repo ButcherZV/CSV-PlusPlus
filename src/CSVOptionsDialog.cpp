@@ -17,19 +17,19 @@ CSVOptionsDialog::CSVOptionsDialog(wxWindow* parent, Encoding detectedEncoding,
     mainSizer->Add(encLabel, 0, wxALL, 5);
     
     wxArrayString encodings;
-    encodings.Add("UTF-8");
     encodings.Add("ANSI");
+    encodings.Add("UTF-8");
     encodings.Add("UTF-16");
     
     encodingChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, encodings);
     
     // Set detected encoding as default
     switch (detectedEncoding) {
-        case Encoding::UTF8:
-        case Encoding::UTF8_BOM:
+        case Encoding::ANSI:
             encodingChoice->SetSelection(0);
             break;
-        case Encoding::ANSI:
+        case Encoding::UTF8:
+        case Encoding::UTF8_BOM:
             encodingChoice->SetSelection(1);
             break;
         case Encoding::UTF16_LE:
@@ -109,9 +109,9 @@ void CSVOptionsDialog::OnOK(wxCommandEvent& event) {
 Encoding CSVOptionsDialog::GetSelectedEncoding() const {
     switch (encodingChoice->GetSelection()) {
         case 0:
-            return Encoding::UTF8;
-        case 1:
             return Encoding::ANSI;
+        case 1:
+            return Encoding::UTF8;
         case 2:
             return Encoding::UTF16_LE;
         default:

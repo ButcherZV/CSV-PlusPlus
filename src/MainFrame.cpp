@@ -7,6 +7,9 @@
 #include <wx/artprov.h>
 #include <wx/dcmemory.h>
 #include <wx/mstream.h>
+#include <wx/config.h>
+#include <wx/html/htmlwin.h>
+#include <wx/hyperlink.h>
 
 // FileDropTarget implementation
 bool FileDropTarget::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenames) {
@@ -26,8 +29,10 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_MENU(wxID_EXIT, MainFrame::OnQuit)
     EVT_MENU(ID_UNDO, MainFrame::OnUndo)
     EVT_MENU(ID_REDO, MainFrame::OnRedo)
-    EVT_MENU(ID_ADD_ROW, MainFrame::OnAddRow)
-    EVT_MENU(ID_ADD_COLUMN, MainFrame::OnAddColumn)
+    EVT_MENU(ID_ADD_ROW_BELOW, MainFrame::OnAddRowBelow)
+    EVT_MENU(ID_ADD_ROW_ABOVE, MainFrame::OnAddRowAbove)
+    EVT_MENU(ID_ADD_COLUMN_LEFT, MainFrame::OnAddColumnLeft)
+    EVT_MENU(ID_ADD_COLUMN_RIGHT, MainFrame::OnAddColumnRight)
     EVT_MENU(ID_DELETE_ROW, MainFrame::OnDeleteRow)
     EVT_MENU(ID_DELETE_COLUMN, MainFrame::OnDeleteColumn)
     EVT_MENU(ID_ENC_UTF8, MainFrame::OnEncodingChange)
@@ -39,11 +44,16 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_MENU(ID_SEP_CUSTOM, MainFrame::OnSeparatorChange)
     EVT_MENU(ID_LANG_ENGLISH, MainFrame::OnLanguageChange)
     EVT_MENU(ID_LANG_SERBIAN, MainFrame::OnLanguageChange)
+    EVT_MENU(ID_HELP_INSTRUCTIONS, MainFrame::OnInstructions)
+    EVT_MENU(ID_HELP_ABOUT, MainFrame::OnAbout)
+    EVT_CHOICE(ID_FONT_SIZE_CHOICE, MainFrame::OnFontSizeChange)
+    EVT_GRID_EDITOR_SHOWN(MainFrame::OnEditorShown)
     EVT_GRID_CELL_CHANGED(MainFrame::OnCellChanged)
     EVT_GRID_LABEL_LEFT_DCLICK(MainFrame::OnLabelDoubleClick)
     EVT_GRID_CELL_RIGHT_CLICK(MainFrame::OnRightClick)
     EVT_GRID_LABEL_RIGHT_CLICK(MainFrame::OnGridRightClick)
     EVT_GRID_COL_SIZE(MainFrame::OnColSize)
+    EVT_GRID_SELECT_CELL(MainFrame::OnSelectCell)
 wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title)
@@ -52,7 +62,16 @@ MainFrame::MainFrame(const wxString& title)
       currentSeparator(','),
       isDirty(false),
       hasHeaderRow(false),
-      currentLanguage(LANGUAGE_ENGLISH) {
+      currentLanguage(LANGUAGE_ENGLISH),
+      currentFontSize(12),
+      isRestoringState(false) {
+    
+    // Load language setting from registry
+    wxConfig config("CSV++");
+    long savedLang = 0;
+    if (config.Read("Language", &savedLang)) {
+        currentLanguage = (Language)savedLang;
+    }
     
     // Create grid
     grid = new wxGrid(this, wxID_ANY);
@@ -61,6 +80,19 @@ MainFrame::MainFrame(const wxString& title)
     grid->EnableDragGridSize(true);
     grid->EnableDragColSize(true);
     grid->EnableDragRowSize(false);
+    grid->SetDefaultCellOverflow(false);
+    
+    // Apply initial font size to grid
+    wxFont font = grid->GetDefaultCellFont();
+    font.SetPointSize(currentFontSize);
+    grid->SetDefaultCellFont(font);
+    
+    wxFont labelFont = grid->GetLabelFont();
+    labelFont.SetPointSize(currentFontSize);
+    grid->SetLabelFont(labelFont);
+    
+    // Apply initial grid dimensions
+    ApplyGridDimensions();
     
     // Set default column labels
     for (int i = 0; i < grid->GetNumberCols(); ++i) {
@@ -81,6 +113,13 @@ MainFrame::MainFrame(const wxString& title)
     UpdateMenuChecks();
     UpdateUndoRedoButtons();
     
+    // Check language menu based on loaded setting
+    wxMenuBar* menuBar = GetMenuBar();
+    if (menuBar) {
+        menuBar->Check(ID_LANG_ENGLISH, currentLanguage == LANGUAGE_ENGLISH);
+        menuBar->Check(ID_LANG_SERBIAN, currentLanguage == LANGUAGE_SERBIAN);
+    }
+    
     Centre();
 }
 
@@ -89,39 +128,45 @@ void MainFrame::CreateMenuBar() {
     
     // File menu
     wxMenu* fileMenu = new wxMenu();
-    fileMenu->Append(ID_NEW, Translate("menu_new"), Translate("menu_new_desc"));
-    fileMenu->Append(ID_OPEN, Translate("menu_open"), Translate("menu_open_desc"));
-    fileMenu->Append(ID_SAVE, Translate("menu_save"), Translate("menu_save_desc"));
-    fileMenu->Append(ID_CLOSE, Translate("menu_close"), Translate("menu_close_desc"));
+    fileMenu->Append(ID_NEW, Translate("menu_new", currentLanguage), Translate("menu_new_desc", currentLanguage));
+    fileMenu->Append(ID_OPEN, Translate("menu_open", currentLanguage), Translate("menu_open_desc", currentLanguage));
+    fileMenu->Append(ID_SAVE, Translate("menu_save", currentLanguage), Translate("menu_save_desc", currentLanguage));
+    fileMenu->Append(ID_CLOSE, Translate("menu_close", currentLanguage), Translate("menu_close_desc", currentLanguage));
     fileMenu->AppendSeparator();
-    fileMenu->Append(wxID_EXIT, Translate("menu_exit"), Translate("menu_exit_desc"));
-    menuBar->Append(fileMenu, Translate("menu_file"));
+    fileMenu->Append(wxID_EXIT, Translate("menu_exit", currentLanguage), Translate("menu_exit_desc", currentLanguage));
+    menuBar->Append(fileMenu, Translate("menu_file", currentLanguage));
     
     // Settings menu
     wxMenu* settingsMenu = new wxMenu();
     
     // Encoding submenu
     wxMenu* encodingMenu = new wxMenu();
-    encodingMenu->AppendRadioItem(ID_ENC_UTF8, "UTF-8");
     encodingMenu->AppendRadioItem(ID_ENC_ANSI, "ANSI");
+    encodingMenu->AppendRadioItem(ID_ENC_UTF8, "UTF-8");
     encodingMenu->AppendRadioItem(ID_ENC_UTF16, "UTF-16");
-    settingsMenu->AppendSubMenu(encodingMenu, Translate("menu_encoding"));
+    settingsMenu->AppendSubMenu(encodingMenu, Translate("menu_encoding", currentLanguage));
     
     // Separator submenu
     wxMenu* separatorMenu = new wxMenu();
-    separatorMenu->AppendRadioItem(ID_SEP_COMMA, Translate("menu_sep_comma"));
-    separatorMenu->AppendRadioItem(ID_SEP_SEMICOLON, Translate("menu_sep_semicolon"));
-    separatorMenu->AppendRadioItem(ID_SEP_TAB, Translate("menu_sep_tab"));
-    separatorMenu->AppendRadioItem(ID_SEP_CUSTOM, Translate("menu_sep_custom"));
-    settingsMenu->AppendSubMenu(separatorMenu, Translate("menu_separator"));
+    separatorMenu->AppendRadioItem(ID_SEP_COMMA, Translate("menu_sep_comma", currentLanguage));
+    separatorMenu->AppendRadioItem(ID_SEP_SEMICOLON, Translate("menu_sep_semicolon", currentLanguage));
+    separatorMenu->AppendRadioItem(ID_SEP_TAB, Translate("menu_sep_tab", currentLanguage));
+    separatorMenu->AppendRadioItem(ID_SEP_CUSTOM, Translate("menu_sep_custom", currentLanguage));
+    settingsMenu->AppendSubMenu(separatorMenu, Translate("menu_separator", currentLanguage));
     
     // Language submenu
     wxMenu* languageMenu = new wxMenu();
     languageMenu->AppendRadioItem(ID_LANG_ENGLISH, "English");
     languageMenu->AppendRadioItem(ID_LANG_SERBIAN, "Srpski");
-    settingsMenu->AppendSubMenu(languageMenu, Translate("menu_language"));
+    settingsMenu->AppendSubMenu(languageMenu, Translate("menu_language", currentLanguage));
     
-    menuBar->Append(settingsMenu, Translate("menu_settings"));
+    menuBar->Append(settingsMenu, Translate("menu_settings", currentLanguage));
+    
+    // Help menu
+    wxMenu* helpMenu = new wxMenu();
+    helpMenu->Append(ID_HELP_INSTRUCTIONS, Translate("menu_help_instructions", currentLanguage), Translate("menu_help_instructions_desc", currentLanguage));
+    helpMenu->Append(ID_HELP_ABOUT, Translate("menu_help_about", currentLanguage), Translate("menu_help_about_desc", currentLanguage));
+    menuBar->Append(helpMenu, Translate("menu_help", currentLanguage));
     
     SetMenuBar(menuBar);
 }
@@ -144,20 +189,34 @@ void MainFrame::CreateToolBar() {
             wxLogDebug("Icon file not found: %s", bmpPath);
         }
         // Return empty bitmap if loading fails
-        return wxBitmap(48, 48);
+        return wxBitmap(32, 32);
     };
     
-    toolBar->AddTool(ID_NEW, Translate("toolbar_new"), loadIcon("file"), Translate("toolbar_new_hint"));
-    toolBar->AddTool(ID_OPEN, Translate("toolbar_open"), loadIcon("folder"), Translate("toolbar_open_hint"));
-    toolBar->AddTool(ID_SAVE, Translate("toolbar_save"), loadIcon("device-floppy"), Translate("toolbar_save_hint"));
+    toolBar->AddTool(ID_NEW, Translate("toolbar_new", currentLanguage), loadIcon("file"), Translate("toolbar_new_hint", currentLanguage));
+    toolBar->AddTool(ID_OPEN, Translate("toolbar_open", currentLanguage), loadIcon("folder"), Translate("toolbar_open_hint", currentLanguage));
+    toolBar->AddTool(ID_SAVE, Translate("toolbar_save", currentLanguage), loadIcon("device-floppy"), Translate("toolbar_save_hint", currentLanguage));
     toolBar->AddSeparator();
-    toolBar->AddTool(ID_UNDO, Translate("toolbar_undo"), loadIcon("undo"), Translate("toolbar_undo_hint"), wxITEM_NORMAL, loadIcon("undo-disabled"));
-    toolBar->AddTool(ID_REDO, Translate("toolbar_redo"), loadIcon("redo"), Translate("toolbar_redo_hint"), wxITEM_NORMAL, loadIcon("redo-disabled"));
+    toolBar->AddTool(ID_UNDO, Translate("toolbar_undo", currentLanguage), loadIcon("undo"), loadIcon("undo-disabled"), wxITEM_NORMAL, Translate("toolbar_undo_hint", currentLanguage));
+    toolBar->AddTool(ID_REDO, Translate("toolbar_redo", currentLanguage), loadIcon("redo"), loadIcon("redo-disabled"), wxITEM_NORMAL, Translate("toolbar_redo_hint", currentLanguage));
     toolBar->AddSeparator();
-    toolBar->AddTool(ID_ADD_ROW, Translate("toolbar_add_row"), loadIcon("row-insert-bottom"), Translate("toolbar_add_row_hint"));
-    toolBar->AddTool(ID_ADD_COLUMN, Translate("toolbar_add_col"), loadIcon("column-insert-right"), Translate("toolbar_add_col_hint"));
-    toolBar->AddTool(ID_DELETE_ROW, Translate("toolbar_del_row"), loadIcon("row-remove"), Translate("toolbar_del_row_hint"));
-    toolBar->AddTool(ID_DELETE_COLUMN, Translate("toolbar_del_col"), loadIcon("column-remove"), Translate("toolbar_del_col_hint"));
+    toolBar->AddTool(ID_ADD_ROW_BELOW, Translate("toolbar_add_row_below", currentLanguage), loadIcon("row-insert-bottom"), Translate("toolbar_add_row_below_hint", currentLanguage));
+    toolBar->AddTool(ID_ADD_ROW_ABOVE, Translate("toolbar_add_row_above", currentLanguage), loadIcon("row-insert-top"), Translate("toolbar_add_row_above_hint", currentLanguage));
+    toolBar->AddTool(ID_DELETE_ROW, Translate("toolbar_del_row", currentLanguage), loadIcon("row-remove"), Translate("toolbar_del_row_hint", currentLanguage));
+    toolBar->AddTool(ID_ADD_COLUMN_LEFT, Translate("toolbar_add_col_left", currentLanguage), loadIcon("column-insert-left"), Translate("toolbar_add_col_left_hint", currentLanguage));
+    toolBar->AddTool(ID_ADD_COLUMN_RIGHT, Translate("toolbar_add_col_right", currentLanguage), loadIcon("column-insert-right"), Translate("toolbar_add_col_right_hint", currentLanguage));
+    toolBar->AddTool(ID_DELETE_COLUMN, Translate("toolbar_del_col", currentLanguage), loadIcon("column-remove"), Translate("toolbar_del_col_hint", currentLanguage));
+    
+    toolBar->AddSeparator();
+    
+    // Font size label and dropdown
+    toolBar->AddControl(new wxStaticText(toolBar, wxID_ANY, Translate("toolbar_font_size", currentLanguage) + ": "));
+    wxArrayString fontSizes;
+    for (int i = 8; i <= 24; i += 2) {
+        fontSizes.Add(wxString::Format("%d", i));
+    }
+    fontSizeChoice = new wxChoice(toolBar, ID_FONT_SIZE_CHOICE, wxDefaultPosition, wxSize(60, -1), fontSizes);
+    fontSizeChoice->SetSelection(2); // Default to 12
+    toolBar->AddControl(fontSizeChoice);
     
     toolBar->Realize();
 }
@@ -187,6 +246,9 @@ void MainFrame::OnNew(wxCommandEvent& event) {
     
     grid->AppendRows(10);
     grid->AppendCols(5);
+    
+    // Apply grid dimensions based on current font size
+    ApplyGridDimensions();
     
     // Set default column labels
     for (int i = 0; i < grid->GetNumberCols(); ++i) {
@@ -277,6 +339,9 @@ void MainFrame::LoadCSVFile(const wxString& filename, Encoding encoding,
     if (rows > 0 && cols > 0) {
         grid->AppendRows(rows);
         grid->AppendCols(cols);
+        
+        // Apply grid dimensions based on current font size
+        ApplyGridDimensions();
         
         // Set headers if present
         int startRow = 0;
@@ -420,25 +485,75 @@ void MainFrame::OnRedo(wxCommandEvent& event) {
     SetDirty(true);
 }
 
-void MainFrame::OnAddRow(wxCommandEvent& event) {
+void MainFrame::OnAddRowBelow(wxCommandEvent& event) {
     SaveState();
     
     int currentRow = grid->GetGridCursorRow();
     if (currentRow < 0) {
-        currentRow = grid->GetNumberRows();
+        currentRow = grid->GetNumberRows() - 1;
     }
     
-    grid->InsertRows(currentRow, 1);
+    grid->InsertRows(currentRow + 1, 1);
+    
+    // Set row height based on current font size
+    int rowHeight = currentFontSize * 2 + 8;
+    grid->SetRowSize(currentRow + 1, rowHeight);
+    
     UpdateStatusBar();
     SetDirty(true);
 }
 
-void MainFrame::OnAddColumn(wxCommandEvent& event) {
+void MainFrame::OnAddRowAbove(wxCommandEvent& event) {
+    SaveState();
+    
+    int currentRow = grid->GetGridCursorRow();
+    if (currentRow < 0) {
+        currentRow = 0;
+    }
+    
+    grid->InsertRows(currentRow, 1);
+    
+    // Set row height based on current font size
+    int rowHeight = currentFontSize * 2 + 8;
+    grid->SetRowSize(currentRow, rowHeight);
+    
+    UpdateStatusBar();
+    SetDirty(true);
+}
+
+void MainFrame::OnAddColumnRight(wxCommandEvent& event) {
     SaveState();
     
     int currentCol = grid->GetGridCursorCol();
     if (currentCol < 0) {
-        currentCol = grid->GetNumberCols();
+        currentCol = grid->GetNumberCols() - 1;
+    }
+    
+    grid->InsertCols(currentCol + 1, 1);
+    
+    // Set default label
+    int newCol = currentCol + 1;
+    wxChar label = 'A' + newCol;
+    if (newCol < 26) {
+        grid->SetColLabelValue(newCol, wxString(label));
+    } else {
+        grid->SetColLabelValue(newCol, wxString::Format("Col%d", newCol + 1));
+    }
+    
+    // Set column width based on current font size
+    int colWidth = (currentFontSize * 60) / 8;
+    grid->SetColSize(newCol, colWidth);
+    
+    UpdateStatusBar();
+    SetDirty(true);
+}
+
+void MainFrame::OnAddColumnLeft(wxCommandEvent& event) {
+    SaveState();
+    
+    int currentCol = grid->GetGridCursorCol();
+    if (currentCol < 0) {
+        currentCol = 0;
     }
     
     grid->InsertCols(currentCol, 1);
@@ -450,6 +565,10 @@ void MainFrame::OnAddColumn(wxCommandEvent& event) {
     } else {
         grid->SetColLabelValue(currentCol, wxString::Format("Col%d", currentCol + 1));
     }
+    
+    // Set column width based on current font size
+    int colWidth = (currentFontSize * 60) / 8;
+    grid->SetColSize(currentCol, colWidth);
     
     UpdateStatusBar();
     SetDirty(true);
@@ -530,8 +649,8 @@ void MainFrame::OnSeparatorChange(wxCommandEvent& event) {
             break;
         case ID_SEP_CUSTOM:
             {
-                wxTextEntryDialog dialog(this, "Enter custom separator character:",
-                                        "Custom Separator", wxString(currentSeparator));
+                wxTextEntryDialog dialog(this, Translate("dialog_custom_sep_message", currentLanguage),
+                                        Translate("dialog_custom_sep_title", currentLanguage), wxString(currentSeparator));
                 if (dialog.ShowModal() == wxID_OK) {
                     wxString value = dialog.GetValue();
                     if (!value.IsEmpty()) {
@@ -547,8 +666,14 @@ void MainFrame::OnSeparatorChange(wxCommandEvent& event) {
     SetDirty(true);
 }
 
+void MainFrame::OnEditorShown(wxGridEvent& event) {
+    if (!isRestoringState) {
+        SaveState();
+    }
+    event.Skip();
+}
+
 void MainFrame::OnCellChanged(wxGridEvent& event) {
-    SaveState();
     SetDirty(true);
     event.Skip();
 }
@@ -557,8 +682,8 @@ void MainFrame::OnLabelDoubleClick(wxGridEvent& event) {
     if (event.GetCol() >= 0) {
         // Edit column header
         wxString currentLabel = grid->GetColLabelValue(event.GetCol());
-        wxTextEntryDialog dialog(this, "Enter column header:",
-                                "Edit Column Header", currentLabel);
+        wxTextEntryDialog dialog(this, Translate("dialog_col_header_message", currentLanguage),
+                                Translate("dialog_col_header_title", currentLanguage), currentLabel);
         
         if (dialog.ShowModal() == wxID_OK) {
             SaveState();
@@ -573,11 +698,50 @@ void MainFrame::OnLabelDoubleClick(wxGridEvent& event) {
 
 void MainFrame::OnRightClick(wxGridEvent& event) {
     wxMenu menu;
-    menu.Append(ID_ADD_ROW, "Insert Row");
-    menu.Append(ID_DELETE_ROW, "Delete Row");
+    
+    // Helper to load and resize icon for context menu
+    auto loadIcon = [](const wxString& filename) -> wxBitmap {
+        wxString bmpPath = wxString::Format("resources/%s.bmp", filename);
+        if (wxFileExists(bmpPath)) {
+            wxBitmap bmp(bmpPath, wxBITMAP_TYPE_BMP);
+            if (bmp.IsOk()) {
+                // Resize to 16x16 for menu icons
+                if (bmp.GetWidth() != 16 || bmp.GetHeight() != 16) {
+                    wxImage img = bmp.ConvertToImage();
+                    img = img.Scale(16, 16, wxIMAGE_QUALITY_HIGH);
+                    bmp = wxBitmap(img);
+                }
+                return bmp;
+            }
+        }
+        return wxBitmap(16, 16);
+    };
+    
+    wxMenuItem* addRowBelowItem = new wxMenuItem(&menu, ID_ADD_ROW_BELOW, Translate("toolbar_add_row_below", currentLanguage));
+    addRowBelowItem->SetBitmap(loadIcon("row-insert-bottom"));
+    menu.Append(addRowBelowItem);
+    
+    wxMenuItem* addRowAboveItem = new wxMenuItem(&menu, ID_ADD_ROW_ABOVE, Translate("toolbar_add_row_above", currentLanguage));
+    addRowAboveItem->SetBitmap(loadIcon("row-insert-top"));
+    menu.Append(addRowAboveItem);
+    
+    wxMenuItem* deleteRowItem = new wxMenuItem(&menu, ID_DELETE_ROW, Translate("toolbar_del_row", currentLanguage));
+    deleteRowItem->SetBitmap(loadIcon("row-remove"));
+    menu.Append(deleteRowItem);
+    
     menu.AppendSeparator();
-    menu.Append(ID_ADD_COLUMN, "Insert Column");
-    menu.Append(ID_DELETE_COLUMN, "Delete Column");
+    
+    wxMenuItem* addColLeftItem = new wxMenuItem(&menu, ID_ADD_COLUMN_LEFT, Translate("toolbar_add_col_left", currentLanguage));
+    addColLeftItem->SetBitmap(loadIcon("column-insert-left"));
+    menu.Append(addColLeftItem);
+    
+    wxMenuItem* addColRightItem = new wxMenuItem(&menu, ID_ADD_COLUMN_RIGHT, Translate("toolbar_add_col_right", currentLanguage));
+    addColRightItem->SetBitmap(loadIcon("column-insert-right"));
+    menu.Append(addColRightItem);
+    
+    wxMenuItem* deleteColItem = new wxMenuItem(&menu, ID_DELETE_COLUMN, Translate("toolbar_del_col", currentLanguage));
+    deleteColItem->SetBitmap(loadIcon("column-remove"));
+    menu.Append(deleteColItem);
     
     PopupMenu(&menu);
     event.Skip();
@@ -609,15 +773,24 @@ void MainFrame::UpdateStatusBar() {
     else if (currentSeparator == '\t') sepStr = "Tab";
     else sepStr = wxString(currentSeparator);
     
-    wxString status = wxString::Format("%s: %d | %s: %d | %s: %s | %s: %s",
-                                      Translate("status_rows"),
+    // Get cell coordinates
+    wxString coords = "";
+    int row = grid->GetGridCursorRow();
+    int col = grid->GetGridCursorCol();
+    if (row >= 0 && col >= 0) {
+        coords = wxString::Format(" [%d,%d]", col, row);
+    }
+    
+    wxString status = wxString::Format("%s: %d | %s: %d | %s: %s | %s: %s%s",
+                                      Translate("status_rows", currentLanguage),
                                       grid->GetNumberRows(),
-                                      Translate("status_columns"),
+                                      Translate("status_columns", currentLanguage),
                                       grid->GetNumberCols(),
-                                      Translate("status_encoding"),
+                                      Translate("status_encoding", currentLanguage),
                                       encStr,
-                                      Translate("status_separator"),
-                                      sepStr);
+                                      Translate("status_separator", currentLanguage),
+                                      sepStr,
+                                      coords);
     statusBar->SetStatusText(status);
 }
 
@@ -646,6 +819,14 @@ void MainFrame::SaveState() {
 }
 
 void MainFrame::RestoreState(const GridState& state) {
+    isRestoringState = true;
+    
+    // Save current column widths before clearing
+    std::vector<int> savedColWidths;
+    for (int col = 0; col < grid->GetNumberCols(); ++col) {
+        savedColWidths.push_back(grid->GetColSize(col));
+    }
+    
     ClearGrid();
     
     if (state.rows > 0 && state.cols > 0) {
@@ -657,6 +838,23 @@ void MainFrame::RestoreState(const GridState& state) {
             grid->SetColLabelValue(col, state.headers[col]);
         }
         
+        // Restore previously saved column widths (preserve user adjustments)
+        for (int col = 0; col < state.cols && col < (int)savedColWidths.size(); ++col) {
+            grid->SetColSize(col, savedColWidths[col]);
+        }
+        // For any new columns beyond saved widths, use default
+        int defaultColWidth = (currentFontSize * 60) / 8;
+        for (int col = savedColWidths.size(); col < state.cols; ++col) {
+            grid->SetColSize(col, defaultColWidth);
+        }
+        
+        // Apply row heights based on current font size
+        int rowHeight = currentFontSize * 2 + 8;
+        for (int i = 0; i < grid->GetNumberRows(); ++i) {
+            grid->SetRowSize(i, rowHeight);
+        }
+        grid->SetColLabelSize(rowHeight);
+        
         // Restore data
         for (int row = 0; row < state.rows && row < (int)state.data.size(); ++row) {
             for (int col = 0; col < state.cols && col < (int)state.data[row].size(); ++col) {
@@ -664,6 +862,8 @@ void MainFrame::RestoreState(const GridState& state) {
             }
         }
     }
+    
+    isRestoringState = false;
     
     UpdateStatusBar();
 }
@@ -713,7 +913,7 @@ void MainFrame::SetDirty(bool dirty) {
 
 bool MainFrame::PromptSaveChanges() {
     if (isDirty) {
-        int result = wxMessageBox("Do you want to save changes?", "Save Changes",
+        int result = wxMessageBox(Translate("prompt_save_message", currentLanguage), Translate("prompt_save_title", currentLanguage),
                                  wxYES_NO | wxCANCEL | wxICON_QUESTION);
         if (result == wxYES) {
             wxCommandEvent dummy;
@@ -736,6 +936,51 @@ void MainFrame::OnColSize(wxGridSizeEvent& event) {
     event.Skip();
 }
 
+void MainFrame::OnSelectCell(wxGridEvent& event) {
+    event.Skip();
+    if (grid && statusBar) {
+        // Get coordinates directly from the event
+        int row = event.GetRow();
+        int col = event.GetCol();
+        if (row >= 0 && col >= 0) {
+            wxString coords = wxString::Format("[%d,%d]", col, row);
+            // Update just the coordinates part of status bar
+            wxString encStr;
+            switch (currentEncoding) {
+                case Encoding::UTF8:
+                case Encoding::UTF8_BOM:
+                    encStr = "UTF-8";
+                    break;
+                case Encoding::ANSI:
+                    encStr = "ANSI";
+                    break;
+                case Encoding::UTF16_LE:
+                case Encoding::UTF16_BE:
+                    encStr = "UTF-16";
+                    break;
+            }
+            
+            wxString sepStr;
+            if (currentSeparator == ',') sepStr = ",";
+            else if (currentSeparator == ';') sepStr = ";";
+            else if (currentSeparator == '\t') sepStr = "Tab";
+            else sepStr = wxString(currentSeparator);
+            
+            wxString status = wxString::Format("%s: %d | %s: %d | %s: %s | %s: %s %s",
+                                              Translate("status_rows", currentLanguage),
+                                              grid->GetNumberRows(),
+                                              Translate("status_columns", currentLanguage),
+                                              grid->GetNumberCols(),
+                                              Translate("status_encoding", currentLanguage),
+                                              encStr,
+                                              Translate("status_separator", currentLanguage),
+                                              sepStr,
+                                              coords);
+            statusBar->SetStatusText(status);
+        }
+    }
+}
+
 void MainFrame::OnLanguageChange(wxCommandEvent& event) {
     if (event.GetId() == ID_LANG_ENGLISH) {
         currentLanguage = LANGUAGE_ENGLISH;
@@ -743,7 +988,59 @@ void MainFrame::OnLanguageChange(wxCommandEvent& event) {
         currentLanguage = LANGUAGE_SERBIAN;
     }
     
+    // Save language setting to registry
+    wxConfig config("CSV++");
+    config.Write("Language", (long)currentLanguage);
+    config.Flush();
+    
     UpdateUILanguage();
+}
+
+void MainFrame::OnFontSizeChange(wxCommandEvent& event) {
+    int selection = fontSizeChoice->GetSelection();
+    if (selection != wxNOT_FOUND) {
+        wxString sizeStr = fontSizeChoice->GetString(selection);
+        currentFontSize = wxAtoi(sizeStr);
+        
+        // Apply font size to all cells
+        wxFont font = grid->GetDefaultCellFont();
+        font.SetPointSize(currentFontSize);
+        grid->SetDefaultCellFont(font);
+        
+        // Apply to label cells as well
+        wxFont labelFont = grid->GetLabelFont();
+        labelFont.SetPointSize(currentFontSize);
+        grid->SetLabelFont(labelFont);
+        
+        // Apply grid dimensions (rows and columns) based on font size
+        ApplyGridDimensions();
+        
+        // Refresh grid
+        grid->ForceRefresh();
+    }
+}
+
+void MainFrame::ApplyGridDimensions() {
+    // Calculate row height based on font size
+    // Formula: fontSize * 2 + 8 pixels
+    int rowHeight = currentFontSize * 2 + 8;
+    
+    // Set row heights for all rows
+    for (int i = 0; i < grid->GetNumberRows(); ++i) {
+        grid->SetRowSize(i, rowHeight);
+    }
+    
+    // Set column label height
+    grid->SetColLabelSize(rowHeight);
+    
+    // Calculate column width based on font size
+    // Base width for font size 8 is 60 pixels
+    int colWidth = (currentFontSize * 60) / 8;
+    
+    // Set column widths for all columns
+    for (int i = 0; i < grid->GetNumberCols(); ++i) {
+        grid->SetColSize(i, colWidth);
+    }
 }
 
 void MainFrame::UpdateUILanguage() {
@@ -770,100 +1067,63 @@ void MainFrame::UpdateUILanguage() {
     UpdateUndoRedoButtons();
 }
 
-wxString MainFrame::Translate(const wxString& key) {
-    if (currentLanguage == LANGUAGE_SERBIAN) {
-        // Serbian translations with proper UTF-8 characters
-        if (key == "menu_file") return wxString::FromUTF8("&Fajl");
-        if (key == "menu_new") return wxString::FromUTF8("&Novo\tCtrl+N");
-        if (key == "menu_new_desc") return wxString::FromUTF8("Napravi novu CSV datoteku");
-        if (key == "menu_open") return wxString::FromUTF8("&Otvori...\tCtrl+O");
-        if (key == "menu_open_desc") return wxString::FromUTF8("Otvori CSV datoteku");
-        if (key == "menu_save") return wxString::FromUTF8("&Sačuvaj\tCtrl+S");
-        if (key == "menu_save_desc") return wxString::FromUTF8("Sačuvaj CSV datoteku");
-        if (key == "menu_close") return wxString::FromUTF8("&Zatvori");
-        if (key == "menu_close_desc") return wxString::FromUTF8("Zatvori trenutnu datoteku");
-        if (key == "menu_exit") return wxString::FromUTF8("&Izlaz");
-        if (key == "menu_exit_desc") return wxString::FromUTF8("Izlaz iz aplikacije");
-        
-        if (key == "menu_settings") return wxString::FromUTF8("&Podešavanja");
-        if (key == "menu_encoding") return wxString::FromUTF8("Kodiranje");
-        if (key == "menu_separator") return wxString::FromUTF8("Separator");
-        if (key == "menu_language") return wxString::FromUTF8("Jezik");
-        if (key == "menu_sep_comma") return wxString::FromUTF8("Zapeta (,)");
-        if (key == "menu_sep_semicolon") return wxString::FromUTF8("Tačka-zapeta (;)");
-        if (key == "menu_sep_tab") return wxString::FromUTF8("Tab");
-        if (key == "menu_sep_custom") return wxString::FromUTF8("Prilagođeno...");
-        
-        if (key == "toolbar_new") return wxString::FromUTF8("Novo");
-        if (key == "toolbar_new_hint") return wxString::FromUTF8("Nova datoteka");
-        if (key == "toolbar_open") return wxString::FromUTF8("Otvori");
-        if (key == "toolbar_open_hint") return wxString::FromUTF8("Otvori datoteku");
-        if (key == "toolbar_save") return wxString::FromUTF8("Sačuvaj");
-        if (key == "toolbar_save_hint") return wxString::FromUTF8("Sačuvaj datoteku");
-        if (key == "toolbar_undo") return wxString::FromUTF8("Poništi");
-        if (key == "toolbar_undo_hint") return wxString::FromUTF8("Poništi");
-        if (key == "toolbar_redo") return wxString::FromUTF8("Ponovi");
-        if (key == "toolbar_redo_hint") return wxString::FromUTF8("Ponovi");
-        if (key == "toolbar_add_row") return wxString::FromUTF8("Dodaj red");
-        if (key == "toolbar_add_row_hint") return wxString::FromUTF8("Dodaj red");
-        if (key == "toolbar_add_col") return wxString::FromUTF8("Dodaj kolonu");
-        if (key == "toolbar_add_col_hint") return wxString::FromUTF8("Dodaj kolonu");
-        if (key == "toolbar_del_row") return wxString::FromUTF8("Obriši red");
-        if (key == "toolbar_del_row_hint") return wxString::FromUTF8("Obriši red");
-        if (key == "toolbar_del_col") return wxString::FromUTF8("Obriši kolonu");
-        if (key == "toolbar_del_col_hint") return wxString::FromUTF8("Obriši kolonu");
-        
-        if (key == "status_rows") return wxString::FromUTF8("Redova");
-        if (key == "status_columns") return wxString::FromUTF8("Kolona");
-        if (key == "status_encoding") return wxString::FromUTF8("Kodiranje");
-        if (key == "status_separator") return wxString::FromUTF8("Separator");
+void MainFrame::OnInstructions(wxCommandEvent& event) {
+    wxString htmlFile = (currentLanguage == LANGUAGE_SERBIAN) ? 
+        "resources/instructions_sr.html" : "resources/instructions_en.html";
+    
+    if (!wxFileExists(htmlFile)) {
+        wxMessageBox(Translate("error_instructions_not_found", currentLanguage), 
+                    "Error", wxOK | wxICON_ERROR);
+        return;
     }
     
-    // Default English
-    if (key == "menu_file") return "&File";
-    if (key == "menu_new") return "&New\tCtrl+N";
-    if (key == "menu_new_desc") return "Create new CSV file";
-    if (key == "menu_open") return "&Open...\tCtrl+O";
-    if (key == "menu_open_desc") return "Open CSV file";
-    if (key == "menu_save") return "&Save\tCtrl+S";
-    if (key == "menu_save_desc") return "Save CSV file";
-    if (key == "menu_close") return "&Close";
-    if (key == "menu_close_desc") return "Close current file";
-    if (key == "menu_exit") return "E&xit";
-    if (key == "menu_exit_desc") return "Exit application";
+    wxDialog* dlg = new wxDialog(this, wxID_ANY, Translate("menu_help_instructions", currentLanguage), 
+                                 wxDefaultPosition, wxSize(700, 500));
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     
-    if (key == "menu_settings") return "&Settings";
-    if (key == "menu_encoding") return "Encoding";
-    if (key == "menu_separator") return "Separator";
-    if (key == "menu_language") return "Language";
-    if (key == "menu_sep_comma") return "Comma (,)";
-    if (key == "menu_sep_semicolon") return "Semicolon (;)";
-    if (key == "menu_sep_tab") return "Tab";
-    if (key == "menu_sep_custom") return "Custom...";
+    wxHtmlWindow* html = new wxHtmlWindow(dlg, wxID_ANY, wxDefaultPosition, 
+                                          wxSize(680, 450), wxHW_SCROLLBAR_AUTO);
+    html->LoadPage(htmlFile);
+    sizer->Add(html, 1, wxALL | wxEXPAND, 10);
     
-    if (key == "toolbar_new") return "New";
-    if (key == "toolbar_new_hint") return "New file";
-    if (key == "toolbar_open") return "Open";
-    if (key == "toolbar_open_hint") return "Open file";
-    if (key == "toolbar_save") return "Save";
-    if (key == "toolbar_save_hint") return "Save file";
-    if (key == "toolbar_undo") return "Undo";
-    if (key == "toolbar_undo_hint") return "Undo";
-    if (key == "toolbar_redo") return "Redo";
-    if (key == "toolbar_redo_hint") return "Redo";
-    if (key == "toolbar_add_row") return "Add Row";
-    if (key == "toolbar_add_row_hint") return "Add row";
-    if (key == "toolbar_add_col") return "Add Column";
-    if (key == "toolbar_add_col_hint") return "Add column";
-    if (key == "toolbar_del_row") return "Delete Row";
-    if (key == "toolbar_del_row_hint") return "Delete row";
-    if (key == "toolbar_del_col") return "Delete Column";
-    if (key == "toolbar_del_col_hint") return "Delete column";
+    wxButton* closeBtn = new wxButton(dlg, wxID_OK, Translate("button_close", currentLanguage));
+    sizer->Add(closeBtn, 0, wxALL | wxALIGN_CENTER, 10);
     
-    if (key == "status_rows") return "Rows";
-    if (key == "status_columns") return "Columns";
-    if (key == "status_encoding") return "Encoding";
-    if (key == "status_separator") return "Separator";
-    
-    return key; // Return key if not found
+    dlg->SetSizer(sizer);
+    dlg->ShowModal();
+    dlg->Destroy();
 }
+
+void MainFrame::OnAbout(wxCommandEvent& event) {
+    wxString aboutText = (currentLanguage == LANGUAGE_SERBIAN) ?
+        wxString::FromUTF8("CSV++ - Aplikacija za uređivanje CSV datoteka\n\n"
+                          "Verzija 1.0\n\n"
+                          "Jednostavna i brza aplikacija za rad sa CSV datotekama.\n"
+                          "Podržava različite kodiranja i separatore.\n\n"
+                          "GitHub repozitorijum:\n") :
+        wxString("CSV++ - CSV File Editor\n\n"
+                "Version 1.0\n\n"
+                "Simple and fast application for working with CSV files.\n"
+                "Supports different encodings and separators.\n\n"
+                "GitHub Repository:\n");
+    
+    wxDialog* dlg = new wxDialog(this, wxID_ANY, Translate("menu_help_about", currentLanguage),
+                                 wxDefaultPosition, wxSize(400, 250));
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    
+    wxStaticText* text = new wxStaticText(dlg, wxID_ANY, aboutText);
+    sizer->Add(text, 0, wxALL, 15);
+    
+    wxHyperlinkCtrl* link = new wxHyperlinkCtrl(dlg, wxID_ANY, 
+        "https://github.com/YourUsername/CSV--",
+        "https://github.com/YourUsername/CSV--");
+    sizer->Add(link, 0, wxALL | wxALIGN_CENTER, 10);
+    
+    wxButton* closeBtn = new wxButton(dlg, wxID_OK, "OK");
+    sizer->Add(closeBtn, 0, wxALL | wxALIGN_CENTER, 10);
+    
+    dlg->SetSizer(sizer);
+    dlg->ShowModal();
+    dlg->Destroy();
+}
+
