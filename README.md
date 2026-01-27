@@ -2,6 +2,8 @@
 
 A Windows desktop CSV editor with table view, making it easy to edit CSV files without manually dealing with delimiters and quotes.
 
+![Screenshot](resources/screen.jpg)
+
 ## Features
 
 - **Editable Table View** - Edit CSV data in an intuitive grid interface with column headers
