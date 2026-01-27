@@ -69,6 +69,13 @@ wxString Translate(const wxString& key, Language language) {
         if (key == "menu_help_about_desc") return wxString::FromUTF8("Informacije o aplikaciji");
         if (key == "button_close") return wxString::FromUTF8("Zatvori");
         if (key == "error_instructions_not_found") return wxString::FromUTF8("Datoteka sa uputstvom nije pronađena!");
+        
+        if (key == "about_title") return wxString::FromUTF8("CSV++ - Aplikacija za ure đivanje CSV datoteka");
+        if (key == "about_version") return wxString::FromUTF8("Verzija 1.0");
+        if (key == "about_description1") return wxString::FromUTF8("Jednostavna i brza aplikacija za rad sa CSV datotekama.");
+        if (key == "about_description2") return wxString::FromUTF8("Podržava različite formate kodiranja i separatore.");
+        if (key == "about_license") return wxString::FromUTF8("Licenca: Apache License 2.0");
+        if (key == "about_github") return wxString::FromUTF8("GitHub repo:");
     }
     
     // Default English
@@ -135,6 +142,13 @@ wxString Translate(const wxString& key, Language language) {
     if (key == "menu_help_about_desc") return "About this application";
     if (key == "button_close") return "Close";
     if (key == "error_instructions_not_found") return "Instructions file not found!";
+    
+    if (key == "about_title") return "CSV++ - CSV File Editor";
+    if (key == "about_version") return "Version 1.0";
+    if (key == "about_description1") return "Simple and fast application for working with CSV files.";
+    if (key == "about_description2") return "Supports different encodings and separators.";
+    if (key == "about_license") return "License: Apache License 2.0";
+    if (key == "about_github") return "GitHub Repository:";
     
     return key; // Return key if not found
 }

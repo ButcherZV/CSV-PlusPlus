@@ -73,6 +73,9 @@ MainFrame::MainFrame(const wxString& title)
         currentLanguage = (Language)savedLang;
     }
     
+    // Set window icon
+    SetIcon(wxIcon("IDI_APPICON", wxBITMAP_TYPE_ICO_RESOURCE, 32, 32));
+    
     // Create grid
     grid = new wxGrid(this, wxID_ANY);
     grid->CreateGrid(10, 5);
@@ -1095,31 +1098,32 @@ void MainFrame::OnInstructions(wxCommandEvent& event) {
 }
 
 void MainFrame::OnAbout(wxCommandEvent& event) {
-    wxString aboutText = (currentLanguage == LANGUAGE_SERBIAN) ?
-        wxString::FromUTF8("CSV++ - Aplikacija za uređivanje CSV datoteka\n\n"
-                          "Verzija 1.0\n\n"
-                          "Jednostavna i brza aplikacija za rad sa CSV datotekama.\n"
-                          "Podržava različite kodiranja i separatore.\n\n"
-                          "GitHub repozitorijum:\n") :
-        wxString("CSV++ - CSV File Editor\n\n"
-                "Version 1.0\n\n"
-                "Simple and fast application for working with CSV files.\n"
-                "Supports different encodings and separators.\n\n"
-                "GitHub Repository:\n");
+    wxString aboutText = Translate("about_title", currentLanguage) + "\n\n" +
+                         Translate("about_version", currentLanguage) + "\n\n" +
+                         Translate("about_description1", currentLanguage) + "\n" +
+                         Translate("about_description2", currentLanguage) + "\n\n" +
+                         Translate("about_license", currentLanguage);
     
     wxDialog* dlg = new wxDialog(this, wxID_ANY, Translate("menu_help_about", currentLanguage),
-                                 wxDefaultPosition, wxSize(400, 250));
+                                 wxDefaultPosition, wxSize(500, 300));
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     
     wxStaticText* text = new wxStaticText(dlg, wxID_ANY, aboutText);
     sizer->Add(text, 0, wxALL, 15);
     
-    wxHyperlinkCtrl* link = new wxHyperlinkCtrl(dlg, wxID_ANY, 
-        "https://github.com/YourUsername/CSV--",
-        "https://github.com/YourUsername/CSV--");
-    sizer->Add(link, 0, wxALL | wxALIGN_CENTER, 10);
+    // GitHub repo line with label and link on same line
+    wxBoxSizer* githubSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxStaticText* githubLabel = new wxStaticText(dlg, wxID_ANY, Translate("about_github", currentLanguage) + " ");
+    githubSizer->Add(githubLabel, 0, wxALIGN_CENTER_VERTICAL);
     
-    wxButton* closeBtn = new wxButton(dlg, wxID_OK, "OK");
+    wxHyperlinkCtrl* link = new wxHyperlinkCtrl(dlg, wxID_ANY, 
+        "https://github.com/ButcherZV/CSV-PlusPlus",
+        "https://github.com/ButcherZV/CSV-PlusPlus");
+    githubSizer->Add(link, 0, wxALIGN_CENTER_VERTICAL);
+    
+    sizer->Add(githubSizer, 0, wxALL | wxALIGN_CENTER, 10);
+    
+    wxButton* closeBtn = new wxButton(dlg, wxID_OK, "OK", wxDefaultPosition, wxSize(80, 32));
     sizer->Add(closeBtn, 0, wxALL | wxALIGN_CENTER, 10);
     
     dlg->SetSizer(sizer);
