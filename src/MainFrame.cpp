@@ -25,6 +25,7 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_MENU(ID_NEW, MainFrame::OnNew)
     EVT_MENU(ID_OPEN, MainFrame::OnOpen)
     EVT_MENU(ID_SAVE, MainFrame::OnSave)
+    EVT_MENU(ID_SAVE_AS, MainFrame::OnSaveAs)
     EVT_MENU(ID_CLOSE, MainFrame::OnClose)
     EVT_MENU(wxID_EXIT, MainFrame::OnQuit)
     EVT_MENU(ID_UNDO, MainFrame::OnUndo)
@@ -73,10 +74,15 @@ MainFrame::MainFrame(const wxString& title)
         currentLanguage = (Language)savedLang;
     }
     
-    // Set window icon
+    // Load font size setting from registry (default to 12)
+    long savedFontSize = 12;
+    if (config.Read("FontSize", &savedFontSize)) {
+        currentFontSize = savedFontSize;
+    }
+    
     SetIcon(wxIcon("IDI_APPICON", wxBITMAP_TYPE_ICO_RESOURCE, 32, 32));
     
-    // Create grid
+    // Create main table grid
     grid = new wxGrid(this, wxID_ANY);
     grid->CreateGrid(10, 5);
     grid->EnableEditing(true);
@@ -85,7 +91,7 @@ MainFrame::MainFrame(const wxString& title)
     grid->EnableDragRowSize(false);
     grid->SetDefaultCellOverflow(false);
     
-    // Apply initial font size to grid
+    // Apply initial font size to grid based on Font setting
     wxFont font = grid->GetDefaultCellFont();
     font.SetPointSize(currentFontSize);
     grid->SetDefaultCellFont(font);
@@ -94,7 +100,6 @@ MainFrame::MainFrame(const wxString& title)
     labelFont.SetPointSize(currentFontSize);
     grid->SetLabelFont(labelFont);
     
-    // Apply initial grid dimensions
     ApplyGridDimensions();
     
     // Set default column labels
@@ -134,6 +139,7 @@ void MainFrame::CreateMenuBar() {
     fileMenu->Append(ID_NEW, Translate("menu_new", currentLanguage), Translate("menu_new_desc", currentLanguage));
     fileMenu->Append(ID_OPEN, Translate("menu_open", currentLanguage), Translate("menu_open_desc", currentLanguage));
     fileMenu->Append(ID_SAVE, Translate("menu_save", currentLanguage), Translate("menu_save_desc", currentLanguage));
+    fileMenu->Append(ID_SAVE_AS, Translate("menu_save_as", currentLanguage), Translate("menu_save_as_desc", currentLanguage));
     fileMenu->Append(ID_CLOSE, Translate("menu_close", currentLanguage), Translate("menu_close_desc", currentLanguage));
     fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT, Translate("menu_exit", currentLanguage), Translate("menu_exit_desc", currentLanguage));
@@ -177,7 +183,7 @@ void MainFrame::CreateMenuBar() {
 void MainFrame::CreateToolBar() {
     toolBar = wxFrame::CreateToolBar(wxTB_HORIZONTAL | wxTB_FLAT);
     
-    // Helper to load BMP icon from resources folder
+    // Load BMP icon from resources folder
     auto loadIcon = [](const wxString& filename) -> wxBitmap {
         wxString bmpPath = wxString::Format("resources/%s.bmp", filename);
         if (wxFileExists(bmpPath)) {
@@ -191,7 +197,6 @@ void MainFrame::CreateToolBar() {
         } else {
             wxLogDebug("Icon file not found: %s", bmpPath);
         }
-        // Return empty bitmap if loading fails
         return wxBitmap(32, 32);
     };
     
@@ -218,7 +223,13 @@ void MainFrame::CreateToolBar() {
         fontSizes.Add(wxString::Format("%d", i));
     }
     fontSizeChoice = new wxChoice(toolBar, ID_FONT_SIZE_CHOICE, wxDefaultPosition, wxSize(60, -1), fontSizes);
-    fontSizeChoice->SetSelection(2); // Default to 12
+    // Set selection based on loaded font size
+    int fontSizeIndex = (currentFontSize - 8) / 2;
+    if (fontSizeIndex >= 0 && fontSizeIndex < (int)fontSizes.GetCount()) {
+        fontSizeChoice->SetSelection(fontSizeIndex);
+    } else {
+        fontSizeChoice->SetSelection(2); // Default to 12 if not found
+    }
     toolBar->AddControl(fontSizeChoice);
     
     toolBar->Realize();
@@ -235,8 +246,6 @@ void MainFrame::OnNew(wxCommandEvent& event) {
     
     ClearGrid();
     currentFile.Clear();
-    currentEncoding = Encoding::UTF8;
-    currentSeparator = ',';
     hasHeaderRow = false;
     
     // Create empty grid
@@ -323,8 +332,6 @@ void MainFrame::LoadCSVFile(const wxString& filename, Encoding encoding,
         wxMessageBox("CSV file is empty!", "Warning", wxOK | wxICON_WARNING);
         return;
     }
-    
-    // Clear existing grid
     ClearGrid();
     
     // Determine grid size
@@ -367,6 +374,13 @@ void MainFrame::LoadCSVFile(const wxString& filename, Encoding encoding,
                 grid->SetCellValue(row - startRow, col, data[row][col]);
             }
         }
+        
+        // Auto-size columns to fit content
+        grid->AutoSizeColumns(false);
+        for (int col = 0; col < cols; ++col) {
+            int width = grid->GetColSize(col);
+            grid->SetColSize(col, width + width / 5);
+        }
     }
     
     currentFile = filename;
@@ -401,6 +415,18 @@ void MainFrame::OnSave(wxCommandEvent& event) {
     SaveCSVFile(currentFile);
 }
 
+void MainFrame::OnSaveAs(wxCommandEvent& event) {
+    wxFileDialog saveFileDialog(this, "Save CSV file as", "", "",
+                               "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt",
+                               wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    
+    if (saveFileDialog.ShowModal() == wxID_CANCEL) {
+        return;
+    }
+    
+    SaveCSVFile(saveFileDialog.GetPath());
+}
+
 void MainFrame::SaveCSVFile(const wxString& filename) {
     std::vector<std::vector<wxString>> data;
     
@@ -427,9 +453,9 @@ void MainFrame::SaveCSVFile(const wxString& filename) {
         SetDirty(false);
         currentFile = filename;
         SetTitle("CSV++ - " + wxFileName(filename).GetFullName());
-        wxMessageBox("File saved successfully!", "Success", wxOK | wxICON_INFORMATION);
+        wxMessageBox(Translate("msg_save_success", currentLanguage), Translate("msg_success_title", currentLanguage), wxOK | wxICON_INFORMATION);
     } else {
-        wxMessageBox("Failed to save file!", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox(Translate("msg_save_error", currentLanguage), Translate("msg_error_title", currentLanguage), wxOK | wxICON_ERROR);
     }
 }
 
@@ -543,9 +569,8 @@ void MainFrame::OnAddColumnRight(wxCommandEvent& event) {
         grid->SetColLabelValue(newCol, wxString::Format("Col%d", newCol + 1));
     }
     
-    // Set column width based on current font size
-    int colWidth = (currentFontSize * 60) / 8;
-    grid->SetColSize(newCol, colWidth);
+    // Set column width for new column only
+    grid->SetColSize(newCol, GetDefaultColumnWidth());
     
     UpdateStatusBar();
     SetDirty(true);
@@ -561,7 +586,7 @@ void MainFrame::OnAddColumnLeft(wxCommandEvent& event) {
     
     grid->InsertCols(currentCol, 1);
     
-    // Set default label
+    // Set default labels
     wxChar label = 'A' + currentCol;
     if (currentCol < 26) {
         grid->SetColLabelValue(currentCol, wxString(label));
@@ -569,9 +594,8 @@ void MainFrame::OnAddColumnLeft(wxCommandEvent& event) {
         grid->SetColLabelValue(currentCol, wxString::Format("Col%d", currentCol + 1));
     }
     
-    // Set column width based on current font size
-    int colWidth = (currentFontSize * 60) / 8;
-    grid->SetColSize(currentCol, colWidth);
+    // Set column width for new column only
+    grid->SetColSize(currentCol, GetDefaultColumnWidth());
     
     UpdateStatusBar();
     SetDirty(true);
@@ -846,9 +870,8 @@ void MainFrame::RestoreState(const GridState& state) {
             grid->SetColSize(col, savedColWidths[col]);
         }
         // For any new columns beyond saved widths, use default
-        int defaultColWidth = (currentFontSize * 60) / 8;
         for (int col = savedColWidths.size(); col < state.cols; ++col) {
-            grid->SetColSize(col, defaultColWidth);
+            grid->SetColSize(col, GetDefaultColumnWidth());
         }
         
         // Apply row heights based on current font size
@@ -1005,6 +1028,11 @@ void MainFrame::OnFontSizeChange(wxCommandEvent& event) {
         wxString sizeStr = fontSizeChoice->GetString(selection);
         currentFontSize = wxAtoi(sizeStr);
         
+        // Save font size setting to registry
+        wxConfig config("CSV++");
+        config.Write("FontSize", (long)currentFontSize);
+        config.Flush();
+        
         // Apply font size to all cells
         wxFont font = grid->GetDefaultCellFont();
         font.SetPointSize(currentFontSize);
@@ -1015,12 +1043,28 @@ void MainFrame::OnFontSizeChange(wxCommandEvent& event) {
         labelFont.SetPointSize(currentFontSize);
         grid->SetLabelFont(labelFont);
         
-        // Apply grid dimensions (rows and columns) based on font size
-        ApplyGridDimensions();
+        // Apply row heights and column label height
+        int rowHeight = currentFontSize * 2 + 8;
+        for (int i = 0; i < grid->GetNumberRows(); ++i) {
+            grid->SetRowSize(i, rowHeight);
+        }
+        grid->SetColLabelSize(rowHeight);
+        
+        // Auto-size columns to fit content with 20% extra space
+        grid->AutoSizeColumns(false);
+        for (int col = 0; col < grid->GetNumberCols(); ++col) {
+            int width = grid->GetColSize(col);
+            grid->SetColSize(col, width + width / 5);
+        }
         
         // Refresh grid
         grid->ForceRefresh();
     }
+}
+
+int MainFrame::GetDefaultColumnWidth() const {
+    // Base width for font size 8 is 60 pixels
+    return (currentFontSize * 60) / 8;
 }
 
 void MainFrame::ApplyGridDimensions() {
@@ -1036,11 +1080,8 @@ void MainFrame::ApplyGridDimensions() {
     // Set column label height
     grid->SetColLabelSize(rowHeight);
     
-    // Calculate column width based on font size
-    // Base width for font size 8 is 60 pixels
-    int colWidth = (currentFontSize * 60) / 8;
-    
     // Set column widths for all columns
+    int colWidth = GetDefaultColumnWidth();
     for (int i = 0; i < grid->GetNumberCols(); ++i) {
         grid->SetColSize(i, colWidth);
     }

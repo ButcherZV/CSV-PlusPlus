@@ -62,6 +62,7 @@ private:
         ID_NEW = wxID_HIGHEST + 1,
         ID_OPEN,
         ID_SAVE,
+        ID_SAVE_AS,
         ID_CLOSE,
         ID_UNDO,
         ID_REDO,
@@ -94,6 +95,7 @@ private:
     void OnNew(wxCommandEvent& event);
     void OnOpen(wxCommandEvent& event);
     void OnSave(wxCommandEvent& event);
+    void OnSaveAs(wxCommandEvent& event);
     void OnClose(wxCommandEvent& event);
     void OnQuit(wxCommandEvent& event);
     
@@ -141,6 +143,7 @@ private:
     void UpdateUndoRedoButtons();
     void UpdateUILanguage();
     void ApplyGridDimensions();
+    int GetDefaultColumnWidth() const;
 };
 
 #endif // MAINFRAME_H

@@ -60,7 +60,7 @@ CSVOptionsDialog::CSVOptionsDialog(wxWindow* parent, Encoding detectedEncoding,
     } else if (detectedSeparator == '\t') {
         separatorChoice->SetSelection(2);
     } else {
-        separatorChoice->SetSelection(0); // Default to comma
+        separatorChoice->SetSelection(0); // Default comma
     }
     
     mainSizer->Add(separatorChoice, 0, wxALL | wxEXPAND, 5);

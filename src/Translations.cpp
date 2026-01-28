@@ -10,6 +10,8 @@ wxString Translate(const wxString& key, Language language) {
         if (key == "menu_open_desc") return wxString::FromUTF8("Otvori CSV datoteku");
         if (key == "menu_save") return wxString::FromUTF8("&Sačuvaj\tCtrl+S");
         if (key == "menu_save_desc") return wxString::FromUTF8("Sačuvaj CSV datoteku");
+        if (key == "menu_save_as") return wxString::FromUTF8("Sačuvaj &kao...");
+        if (key == "menu_save_as_desc") return wxString::FromUTF8("Sačuvaj CSV datoteku pod novim imenom");
         if (key == "menu_close") return wxString::FromUTF8("&Zatvori");
         if (key == "menu_close_desc") return wxString::FromUTF8("Zatvori trenutnu datoteku");
         if (key == "menu_exit") return wxString::FromUTF8("&Izlaz");
@@ -75,8 +77,11 @@ wxString Translate(const wxString& key, Language language) {
         if (key == "about_description1") return wxString::FromUTF8("Jednostavna i brza aplikacija za rad sa CSV datotekama.");
         if (key == "about_description2") return wxString::FromUTF8("Podržava različite formate kodiranja i separatore.");
         if (key == "about_license") return wxString::FromUTF8("Licenca: Apache License 2.0");
-        if (key == "about_github") return wxString::FromUTF8("GitHub repo:");
-    }
+        if (key == "about_github") return wxString::FromUTF8("GitHub repo:");        
+        if (key == "msg_save_success") return wxString::FromUTF8("Datoteka je uspešno sačuvana!");
+        if (key == "msg_save_error") return wxString::FromUTF8("Greška pri čuvanju datoteke!");
+        if (key == "msg_success_title") return wxString::FromUTF8("Uspeh");
+        if (key == "msg_error_title") return wxString::FromUTF8("Greška");    }
     
     // Default English
     if (key == "menu_file") return "&File";
@@ -86,6 +91,8 @@ wxString Translate(const wxString& key, Language language) {
     if (key == "menu_open_desc") return "Open CSV file";
     if (key == "menu_save") return "&Save\tCtrl+S";
     if (key == "menu_save_desc") return "Save CSV file";
+    if (key == "menu_save_as") return "Save &As...";
+    if (key == "menu_save_as_desc") return "Save CSV file with a new name";
     if (key == "menu_close") return "&Close";
     if (key == "menu_close_desc") return "Close current file";
     if (key == "menu_exit") return "E&xit";
@@ -149,6 +156,11 @@ wxString Translate(const wxString& key, Language language) {
     if (key == "about_description2") return "Supports different encodings and separators.";
     if (key == "about_license") return "License: Apache License 2.0";
     if (key == "about_github") return "GitHub Repository:";
+    
+    if (key == "msg_save_success") return "File saved successfully!";
+    if (key == "msg_save_error") return "Failed to save file!";
+    if (key == "msg_success_title") return "Success";
+    if (key == "msg_error_title") return "Error";
     
     return key; // Return key if not found
 }
