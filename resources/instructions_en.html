@@ -45,19 +45,22 @@
         <li><img src="column-insert-right.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Add Column Right</span> - Insert a new column to the right of selected cell</li>
         <li><img src="column-remove.bmp" width="32" height="32" style="margin-top:-8px"> <span class="toolbar-btn">Delete Column</span> - Delete the selected column</li>
         <li><span class="toolbar-btn">Font Size</span> - Change the font size of the table (8-24)</li>
+        <li><span class="toolbar-btn">Rows</span> - Set the total number of rows in the table. Increasing adds empty rows at the bottom; decreasing removes rows from the bottom (a warning is shown if those rows contain data)</li>
+        <li><span class="toolbar-btn">Cols</span> - Set the total number of columns in the table. Increasing adds empty columns to the right; decreasing removes columns from the right (a warning is shown if those columns contain data)</li>
     </ul>
     
     <h2>Right-Click Context Menu</h2>
     <ul>
-        <li>Right-click on any cell to access quick row/column operations</li>
-        <li>All insert and delete operations are available from the context menu</li>
+        <li>Right-click on any <b>cell</b> to access quick row/column operations (add/delete rows and columns)</li>
+        <li>Right-click on a <b>column header</b> to rename that column</li>
     </ul>
     
     <h2>Editing Cells</h2>
     <ul>
         <li>Click on a cell to select it</li>
         <li>Double-click or press Enter to edit the cell content</li>
-        <li>Double-click column headers to rename them</li>
+        <li>Right-click a column header and choose <b>Rename column</b> to rename it</li>
+        <li>Press <b>Tab</b> to move to the next cell; on the last cell in a row, Tab moves to the first cell of the next row</li>
     </ul>
     
     <h2>Status Bar</h2>
@@ -71,6 +74,8 @@
     <ul>
         <li>Your language preference is automatically saved</li>
         <li>You can resize columns by dragging the column borders</li>
+        <li>When resizing a column, the column width automatically adjusts to fit its content</li>
+        <li>When changing the number of rows or columns, new elements are added at the end of the table; if the count is reduced, a warning is shown if those rows or columns contain data</li>
         <li>Files can be opened by dragging and dropping them into the window</li>
         <li>The application supports up to 50 undo/redo levels</li>
     </ul>

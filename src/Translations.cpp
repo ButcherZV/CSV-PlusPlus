@@ -70,12 +70,31 @@ wxString Translate(const wxString& key, Language language) {
         if (key == "button_close") return wxString::FromUTF8("Zatvori");
         if (key == "error_instructions_not_found") return wxString::FromUTF8("Datoteka sa uputstvom nije pronađena!");
         
-        if (key == "about_title") return wxString::FromUTF8("CSV++ - Aplikacija za ure đivanje CSV datoteka");
-        if (key == "about_version") return wxString::FromUTF8("Verzija 1.0");
+        if (key == "about_title") return wxString::FromUTF8("CSV++ - Aplikacija za uređivanje CSV datoteka");
+        if (key == "about_version") return wxString::FromUTF8("Verzija 1.0.3");
         if (key == "about_description1") return wxString::FromUTF8("Jednostavna i brza aplikacija za rad sa CSV datotekama.");
         if (key == "about_description2") return wxString::FromUTF8("Podržava različite formate kodiranja i separatore.");
         if (key == "about_license") return wxString::FromUTF8("Licenca: Apache License 2.0");
         if (key == "about_github") return wxString::FromUTF8("GitHub repo:");
+        
+        if (key == "warning_title") return wxString::FromUTF8("Upozorenje");
+        if (key == "warning_rows_have_data") return wxString::FromUTF8("Redovi koje bri\u0161ete sadr\u017ee podatke. Da li ste sigurni da \u017eelite da ih obri\u0161ete?");
+        if (key == "warning_cols_have_data") return wxString::FromUTF8("Kolone koje bri\u0161ete sadr\u017ee podatke. Da li ste sigurni da \u017eelite da ih obri\u0161ete?");
+        
+        if (key == "error_title") return wxString::FromUTF8("Gre\u0161ka");
+        if (key == "success_title") return wxString::FromUTF8("Uspeh");
+        if (key == "msg_file_read_failed") return wxString::FromUTF8("Gre\u0161ka pri \u010ditanju datoteke!");
+        if (key == "msg_file_load_failed") return wxString::FromUTF8("Gre\u0161ka pri u\u010ditavanju CSV datoteke!");
+        if (key == "msg_file_empty") return wxString::FromUTF8("CSV datoteka je prazna!");
+        if (key == "msg_file_saved") return wxString::FromUTF8("Datoteka je uspe\u0161no sa\u010duvana!");
+        if (key == "msg_file_save_failed") return wxString::FromUTF8("Gre\u0161ka pri \u010duvanju datoteke!");
+        if (key == "dialog_open_title") return wxString::FromUTF8("Otvori CSV datoteku");
+        if (key == "dialog_save_title") return wxString::FromUTF8("Sa\u010duvaj CSV datoteku");
+        if (key == "dialog_csv_options_title") return wxString::FromUTF8("Opcije uvoza CSV");
+        if (key == "dialog_encoding_label") return wxString::FromUTF8("Kodiranje datoteke:");
+        if (key == "dialog_separator_label") return wxString::FromUTF8("Separator polja:");
+        if (key == "dialog_header_checkbox") return wxString::FromUTF8("Prvi red je zaglavlje");
+        if (key == "context_rename_column") return wxString::FromUTF8("Preimenuj kolonu");
     }
     
     // Default English
@@ -149,6 +168,25 @@ wxString Translate(const wxString& key, Language language) {
     if (key == "about_description2") return "Supports different encodings and separators.";
     if (key == "about_license") return "License: Apache License 2.0";
     if (key == "about_github") return "GitHub Repository:";
+    
+    if (key == "warning_title") return "Warning";
+    if (key == "warning_rows_have_data") return "The rows you are removing contain data. Are you sure you want to delete them?";
+    if (key == "warning_cols_have_data") return "The columns you are removing contain data. Are you sure you want to delete them?";
+    
+    if (key == "error_title") return "Error";
+    if (key == "success_title") return "Success";
+    if (key == "msg_file_read_failed") return "Failed to read file!";
+    if (key == "msg_file_load_failed") return "Failed to load CSV file!";
+    if (key == "msg_file_empty") return "CSV file is empty!";
+    if (key == "msg_file_saved") return "File saved successfully!";
+    if (key == "msg_file_save_failed") return "Failed to save file!";
+    if (key == "dialog_open_title") return "Open CSV file";
+    if (key == "dialog_save_title") return "Save CSV file";
+    if (key == "dialog_csv_options_title") return "CSV Import Options";
+    if (key == "dialog_encoding_label") return "File Encoding:";
+    if (key == "dialog_separator_label") return "Field Separator:";
+    if (key == "dialog_header_checkbox") return "First row is header";
+    if (key == "context_rename_column") return "Rename column";
     
     return key; // Return key if not found
 }

@@ -4,11 +4,13 @@
 #include <wx/wx.h>
 #include <wx/choice.h>
 #include "CSVParser.h"
+#include "Translations.h"
 
 class CSVOptionsDialog : public wxDialog {
 public:
     CSVOptionsDialog(wxWindow* parent, Encoding detectedEncoding, 
-                     wxChar detectedSeparator, bool hasHeader = false);
+                     wxChar detectedSeparator, bool hasHeader = false,
+                     Language language = LANGUAGE_ENGLISH);
     
     Encoding GetSelectedEncoding() const;
     wxChar GetSelectedSeparator() const;
@@ -22,6 +24,7 @@ private:
     Encoding detectedEnc;
     wxChar detectedSep;
     wxChar customSeparator;
+    Language lang;
     
     void OnSeparatorChoice(wxCommandEvent& event);
     void OnOK(wxCommandEvent& event);

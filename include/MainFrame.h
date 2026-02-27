@@ -4,6 +4,7 @@
 #include <wx/wx.h>
 #include <wx/grid.h>
 #include <wx/dnd.h>
+#include <wx/spinctrl.h>
 #include <deque>
 #include "CSVParser.h"
 #include "Translations.h"
@@ -39,7 +40,11 @@ private:
     wxStatusBar* statusBar;
     wxToolBar* toolBar;
     wxChoice* fontSizeChoice;
+    wxSpinCtrl* rowsSpinCtrl;
+    wxSpinCtrl* colsSpinCtrl;
     int currentFontSize;
+    bool isUpdatingCounts;
+    int rightClickedCol;
     
     // File state
     wxString currentFile;
@@ -82,7 +87,10 @@ private:
         ID_LANG_SERBIAN,
         ID_FONT_SIZE_CHOICE,
         ID_HELP_INSTRUCTIONS,
-        ID_HELP_ABOUT
+        ID_HELP_ABOUT,
+        ID_ROWS_SPIN,
+        ID_COLS_SPIN,
+        ID_RENAME_COLUMN
     };
     
     // UI Creation
@@ -112,6 +120,8 @@ private:
     void OnSeparatorChange(wxCommandEvent& event);
     void OnLanguageChange(wxCommandEvent& event);
     void OnFontSizeChange(wxCommandEvent& event);
+    void OnRowsSpinChange(wxSpinEvent& event);
+    void OnColsSpinChange(wxSpinEvent& event);
     
     // Help
     void OnInstructions(wxCommandEvent& event);
@@ -123,6 +133,8 @@ private:
     void OnLabelDoubleClick(wxGridEvent& event);
     void OnRightClick(wxGridEvent& event);
     void OnGridRightClick(wxGridEvent& event);
+    void OnRenameColumn(wxCommandEvent& event);
+    void OnGridKeyDown(wxKeyEvent& event);
     void OnColSize(wxGridSizeEvent& event);
     void OnSelectCell(wxGridEvent& event);
     
@@ -141,6 +153,7 @@ private:
     void UpdateUndoRedoButtons();
     void UpdateUILanguage();
     void ApplyGridDimensions();
+    void UpdateToolbarCounts();
 };
 
 #endif // MAINFRAME_H

@@ -6,14 +6,14 @@ wxBEGIN_EVENT_TABLE(CSVOptionsDialog, wxDialog)
 wxEND_EVENT_TABLE()
 
 CSVOptionsDialog::CSVOptionsDialog(wxWindow* parent, Encoding detectedEncoding,
-                                   wxChar detectedSeparator, bool hasHeader)
-    : wxDialog(parent, wxID_ANY, "CSV Import Options", wxDefaultPosition, wxSize(400, 250)),
-      detectedEnc(detectedEncoding), detectedSep(detectedSeparator), customSeparator(',') {
+                                   wxChar detectedSeparator, bool hasHeader, Language language)
+    : wxDialog(parent, wxID_ANY, Translate("dialog_csv_options_title", language), wxDefaultPosition, wxSize(400, 250)),
+      detectedEnc(detectedEncoding), detectedSep(detectedSeparator), customSeparator(','), lang(language) {
     
     wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
     
     // Encoding selection
-    wxStaticText* encLabel = new wxStaticText(this, wxID_ANY, "File Encoding:");
+    wxStaticText* encLabel = new wxStaticText(this, wxID_ANY, Translate("dialog_encoding_label", lang));
     mainSizer->Add(encLabel, 0, wxALL, 5);
     
     wxArrayString encodings;
@@ -41,14 +41,14 @@ CSVOptionsDialog::CSVOptionsDialog(wxWindow* parent, Encoding detectedEncoding,
     mainSizer->Add(encodingChoice, 0, wxALL | wxEXPAND, 5);
     
     // Separator selection
-    wxStaticText* sepLabel = new wxStaticText(this, wxID_ANY, "Field Separator:");
+    wxStaticText* sepLabel = new wxStaticText(this, wxID_ANY, Translate("dialog_separator_label", lang));
     mainSizer->Add(sepLabel, 0, wxALL, 5);
     
     wxArrayString separators;
-    separators.Add("Comma (,)");
-    separators.Add("Semicolon (;)");
-    separators.Add("Tab");
-    separators.Add("Custom...");
+    separators.Add(Translate("menu_sep_comma", lang));
+    separators.Add(Translate("menu_sep_semicolon", lang));
+    separators.Add(Translate("menu_sep_tab", lang));
+    separators.Add(Translate("menu_sep_custom", lang));
     
     separatorChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, separators);
     
@@ -66,7 +66,7 @@ CSVOptionsDialog::CSVOptionsDialog(wxWindow* parent, Encoding detectedEncoding,
     mainSizer->Add(separatorChoice, 0, wxALL | wxEXPAND, 5);
     
     // Header checkbox
-    headerCheckBox = new wxCheckBox(this, wxID_ANY, "First row is header");
+    headerCheckBox = new wxCheckBox(this, wxID_ANY, Translate("dialog_header_checkbox", lang));
     headerCheckBox->SetValue(hasHeader);
     mainSizer->Add(headerCheckBox, 0, wxALL, 5);
     
@@ -80,8 +80,8 @@ CSVOptionsDialog::CSVOptionsDialog(wxWindow* parent, Encoding detectedEncoding,
 
 void CSVOptionsDialog::OnSeparatorChoice(wxCommandEvent& event) {
     if (separatorChoice->GetSelection() == 3) { // Custom
-        wxTextEntryDialog dialog(this, "Enter custom separator character:",
-                                "Custom Separator", ",");
+        wxTextEntryDialog dialog(this, Translate("dialog_custom_sep_message", lang),
+                                Translate("dialog_custom_sep_title", lang), ",");
         if (dialog.ShowModal() == wxID_OK) {
             wxString value = dialog.GetValue();
             if (!value.IsEmpty()) {

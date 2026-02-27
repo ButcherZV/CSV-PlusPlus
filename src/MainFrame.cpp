@@ -10,6 +10,7 @@
 #include <wx/config.h>
 #include <wx/html/htmlwin.h>
 #include <wx/hyperlink.h>
+#include <wx/spinctrl.h>
 
 // FileDropTarget implementation
 bool FileDropTarget::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenames) {
@@ -47,6 +48,9 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_MENU(ID_HELP_INSTRUCTIONS, MainFrame::OnInstructions)
     EVT_MENU(ID_HELP_ABOUT, MainFrame::OnAbout)
     EVT_CHOICE(ID_FONT_SIZE_CHOICE, MainFrame::OnFontSizeChange)
+    EVT_SPINCTRL(ID_ROWS_SPIN, MainFrame::OnRowsSpinChange)
+    EVT_SPINCTRL(ID_COLS_SPIN, MainFrame::OnColsSpinChange)
+    EVT_MENU(ID_RENAME_COLUMN, MainFrame::OnRenameColumn)
     EVT_GRID_EDITOR_SHOWN(MainFrame::OnEditorShown)
     EVT_GRID_CELL_CHANGED(MainFrame::OnCellChanged)
     EVT_GRID_LABEL_LEFT_DCLICK(MainFrame::OnLabelDoubleClick)
@@ -64,7 +68,9 @@ MainFrame::MainFrame(const wxString& title)
       hasHeaderRow(false),
       currentLanguage(LANGUAGE_ENGLISH),
       currentFontSize(12),
-      isRestoringState(false) {
+      isRestoringState(false),
+      isUpdatingCounts(false),
+      rightClickedCol(-1) {
     
     // Load language setting from registry
     wxConfig config("CSV++");
@@ -79,6 +85,7 @@ MainFrame::MainFrame(const wxString& title)
     // Create grid
     grid = new wxGrid(this, wxID_ANY);
     grid->CreateGrid(10, 5);
+    grid->Bind(wxEVT_KEY_DOWN, &MainFrame::OnGridKeyDown, this);
     grid->EnableEditing(true);
     grid->EnableDragGridSize(true);
     grid->EnableDragColSize(true);
@@ -221,6 +228,20 @@ void MainFrame::CreateToolBar() {
     fontSizeChoice->SetSelection(2); // Default to 12
     toolBar->AddControl(fontSizeChoice);
     
+    toolBar->AddSeparator();
+    
+    // Rows spinner
+    toolBar->AddControl(new wxStaticText(toolBar, wxID_ANY, Translate("status_rows", currentLanguage) + ": "));
+    rowsSpinCtrl = new wxSpinCtrl(toolBar, ID_ROWS_SPIN, wxEmptyString, wxDefaultPosition, wxSize(65, -1), wxSP_ARROW_KEYS, 1, 10000, 10);
+    toolBar->AddControl(rowsSpinCtrl);
+    
+    toolBar->AddSeparator();
+    
+    // Columns spinner
+    toolBar->AddControl(new wxStaticText(toolBar, wxID_ANY, Translate("status_columns", currentLanguage) + ": "));
+    colsSpinCtrl = new wxSpinCtrl(toolBar, ID_COLS_SPIN, wxEmptyString, wxDefaultPosition, wxSize(65, -1), wxSP_ARROW_KEYS, 1, 1000, 5);
+    toolBar->AddControl(colsSpinCtrl);
+    
     toolBar->Realize();
 }
 
@@ -272,7 +293,7 @@ void MainFrame::OnOpen(wxCommandEvent& event) {
         return;
     }
     
-    wxFileDialog openFileDialog(this, "Open CSV file", "", "",
+    wxFileDialog openFileDialog(this, Translate("dialog_open_title", currentLanguage), "", "",
                                "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt|All files (*.*)|*.*",
                                wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     
@@ -294,12 +315,12 @@ void MainFrame::OpenFileFromDrop(const wxString& filename) {
     
     CSVParser parser;
     if (!parser.ReadFile(filename, tempData, detectedSep, detectedEnc, tempHeader)) {
-        wxMessageBox("Failed to read file!", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox(Translate("msg_file_read_failed", currentLanguage), Translate("error_title", currentLanguage), wxOK | wxICON_ERROR);
         return;
     }
     
     // Show options dialog
-    CSVOptionsDialog dialog(this, detectedEnc, detectedSep, true);
+    CSVOptionsDialog dialog(this, detectedEnc, detectedSep, true, currentLanguage);
     if (dialog.ShowModal() == wxID_OK) {
         Encoding selectedEnc = dialog.GetSelectedEncoding();
         wxChar selectedSep = dialog.GetSelectedSeparator();
@@ -315,12 +336,12 @@ void MainFrame::LoadCSVFile(const wxString& filename, Encoding encoding,
     CSVParser parser;
     
     if (!parser.ReadFile(filename, data, separator, encoding, hasHeader)) {
-        wxMessageBox("Failed to load CSV file!", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox(Translate("msg_file_load_failed", currentLanguage), Translate("error_title", currentLanguage), wxOK | wxICON_ERROR);
         return;
     }
     
     if (data.empty()) {
-        wxMessageBox("CSV file is empty!", "Warning", wxOK | wxICON_WARNING);
+        wxMessageBox(Translate("msg_file_empty", currentLanguage), Translate("warning_title", currentLanguage), wxOK | wxICON_WARNING);
         return;
     }
     
@@ -387,7 +408,7 @@ void MainFrame::LoadCSVFile(const wxString& filename, Encoding encoding,
 
 void MainFrame::OnSave(wxCommandEvent& event) {
     if (currentFile.IsEmpty()) {
-        wxFileDialog saveFileDialog(this, "Save CSV file", "", "",
+        wxFileDialog saveFileDialog(this, Translate("dialog_save_title", currentLanguage), "", "",
                                    "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt",
                                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
         
@@ -427,9 +448,9 @@ void MainFrame::SaveCSVFile(const wxString& filename) {
         SetDirty(false);
         currentFile = filename;
         SetTitle("CSV++ - " + wxFileName(filename).GetFullName());
-        wxMessageBox("File saved successfully!", "Success", wxOK | wxICON_INFORMATION);
+        wxMessageBox(Translate("msg_file_saved", currentLanguage), Translate("success_title", currentLanguage), wxOK | wxICON_INFORMATION);
     } else {
-        wxMessageBox("Failed to save file!", "Error", wxOK | wxICON_ERROR);
+        wxMessageBox(Translate("msg_file_save_failed", currentLanguage), Translate("error_title", currentLanguage), wxOK | wxICON_ERROR);
     }
 }
 
@@ -682,24 +703,17 @@ void MainFrame::OnCellChanged(wxGridEvent& event) {
 }
 
 void MainFrame::OnLabelDoubleClick(wxGridEvent& event) {
-    if (event.GetCol() >= 0) {
-        // Edit column header
-        wxString currentLabel = grid->GetColLabelValue(event.GetCol());
-        wxTextEntryDialog dialog(this, Translate("dialog_col_header_message", currentLanguage),
-                                Translate("dialog_col_header_title", currentLanguage), currentLabel);
-        
-        if (dialog.ShowModal() == wxID_OK) {
-            SaveState();
-            wxString newLabel = dialog.GetValue();
-            grid->SetColLabelValue(event.GetCol(), newLabel);
-            hasHeaderRow = true;
-            SetDirty(true);
-        }
-    }
+    // Column rename is now handled via right-click context menu only
     event.Skip();
 }
 
 void MainFrame::OnRightClick(wxGridEvent& event) {
+    // Select the right-clicked cell (only for actual cells, not headers)
+    if (event.GetRow() >= 0 && event.GetCol() >= 0) {
+        grid->SetGridCursor(event.GetRow(), event.GetCol());
+        grid->ClearSelection();
+    }
+    
     wxMenu menu;
     
     // Helper to load and resize icon for context menu
@@ -751,7 +765,45 @@ void MainFrame::OnRightClick(wxGridEvent& event) {
 }
 
 void MainFrame::OnGridRightClick(wxGridEvent& event) {
-    OnRightClick(event);
+    if (event.GetCol() >= 0) {
+        // Right-click on column header: show rename menu
+        rightClickedCol = event.GetCol();
+        wxMenu menu;
+        menu.Append(ID_RENAME_COLUMN, Translate("context_rename_column", currentLanguage));
+        PopupMenu(&menu);
+    }
+    // Right-click on row header: do nothing
+}
+
+void MainFrame::OnRenameColumn(wxCommandEvent& event) {
+    if (rightClickedCol < 0 || rightClickedCol >= grid->GetNumberCols()) return;
+    wxString currentLabel = grid->GetColLabelValue(rightClickedCol);
+    wxTextEntryDialog dialog(this, Translate("dialog_col_header_message", currentLanguage),
+                            Translate("dialog_col_header_title", currentLanguage), currentLabel);
+    if (dialog.ShowModal() == wxID_OK) {
+        SaveState();
+        grid->SetColLabelValue(rightClickedCol, dialog.GetValue());
+        hasHeaderRow = true;
+        SetDirty(true);
+    }
+}
+
+void MainFrame::OnGridKeyDown(wxKeyEvent& event) {
+    if (event.GetKeyCode() == WXK_TAB) {
+        int row = grid->GetGridCursorRow();
+        int col = grid->GetGridCursorCol();
+        int numRows = grid->GetNumberRows();
+        int numCols = grid->GetNumberCols();
+        if (col == numCols - 1) {
+            // Last column: wrap to first column of next row (or stay if last row)
+            if (row < numRows - 1) {
+                grid->SetGridCursor(row + 1, 0);
+                grid->MakeCellVisible(row + 1, 0);
+            }
+            return; // eat the event so wxGrid doesn't do its default wrapping
+        }
+    }
+    event.Skip();
 }
 
 void MainFrame::UpdateStatusBar() {
@@ -795,6 +847,7 @@ void MainFrame::UpdateStatusBar() {
                                       sepStr,
                                       coords);
     statusBar->SetStatusText(status);
+    UpdateToolbarCounts();
 }
 
 void MainFrame::UpdateMenuChecks() {
@@ -1020,6 +1073,108 @@ void MainFrame::OnFontSizeChange(wxCommandEvent& event) {
         
         // Refresh grid
         grid->ForceRefresh();
+    }
+}
+
+void MainFrame::UpdateToolbarCounts() {
+    if (!rowsSpinCtrl || !colsSpinCtrl) return;
+    isUpdatingCounts = true;
+    rowsSpinCtrl->SetValue(grid->GetNumberRows());
+    colsSpinCtrl->SetValue(grid->GetNumberCols());
+    isUpdatingCounts = false;
+}
+
+void MainFrame::OnRowsSpinChange(wxSpinEvent& event) {
+    if (isUpdatingCounts) return;
+    
+    int newRows = event.GetValue();
+    int curRows = grid->GetNumberRows();
+    
+    if (newRows == curRows) return;
+    
+    if (newRows > curRows) {
+        // Add rows
+        SaveState();
+        grid->AppendRows(newRows - curRows);
+        ApplyGridDimensions();
+        UpdateStatusBar();
+        SetDirty(true);
+    } else {
+        // Check if any rows to be removed have data
+        bool hasData = false;
+        for (int r = newRows; r < curRows && !hasData; r++) {
+            for (int c = 0; c < grid->GetNumberCols() && !hasData; c++) {
+                if (!grid->GetCellValue(r, c).IsEmpty()) hasData = true;
+            }
+        }
+        
+        if (hasData) {
+            if (wxMessageBox(Translate("warning_rows_have_data", currentLanguage),
+                Translate("warning_title", currentLanguage),
+                wxYES_NO | wxICON_WARNING, this) != wxYES) {
+                // Revert spinner
+                isUpdatingCounts = true;
+                rowsSpinCtrl->SetValue(curRows);
+                isUpdatingCounts = false;
+                return;
+            }
+        }
+        
+        SaveState();
+        grid->DeleteRows(newRows, curRows - newRows);
+        UpdateStatusBar();
+        SetDirty(true);
+    }
+}
+
+void MainFrame::OnColsSpinChange(wxSpinEvent& event) {
+    if (isUpdatingCounts) return;
+    
+    int newCols = event.GetValue();
+    int curCols = grid->GetNumberCols();
+    
+    if (newCols == curCols) return;
+    
+    if (newCols > curCols) {
+        // Add columns
+        SaveState();
+        grid->AppendCols(newCols - curCols);
+        // Set labels for new columns
+        for (int i = curCols; i < newCols; i++) {
+            if (i < 26) {
+                grid->SetColLabelValue(i, wxString((wxChar)('A' + i)));
+            } else {
+                grid->SetColLabelValue(i, wxString::Format("Col%d", i + 1));
+            }
+        }
+        ApplyGridDimensions();
+        UpdateStatusBar();
+        SetDirty(true);
+    } else {
+        // Check if any columns to be removed have data
+        bool hasData = false;
+        for (int c = newCols; c < curCols && !hasData; c++) {
+            for (int r = 0; r < grid->GetNumberRows() && !hasData; r++) {
+                if (!grid->GetCellValue(r, c).IsEmpty()) hasData = true;
+            }
+        }
+        
+        if (hasData) {
+            if (wxMessageBox(Translate("warning_cols_have_data", currentLanguage),
+                Translate("warning_title", currentLanguage),
+                wxYES_NO | wxICON_WARNING, this) != wxYES) {
+                // Revert spinner
+                isUpdatingCounts = true;
+                colsSpinCtrl->SetValue(curCols);
+                isUpdatingCounts = false;
+                return;
+            }
+        }
+        
+        SaveState();
+        grid->DeleteCols(newCols, curCols - newCols);
+        UpdateStatusBar();
+        SetDirty(true);
     }
 }
 
