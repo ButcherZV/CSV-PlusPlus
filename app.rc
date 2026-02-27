@@ -6,8 +6,8 @@ IDI_APPICON ICON "resources\\app.ico"
 
 // Version information
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 1,0,0,0
-PRODUCTVERSION 1,0,0,0
+FILEVERSION 1,0,0,3
+PRODUCTVERSION 1,0,0,3
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0x0L
 FILEOS VOS_NT_WINDOWS32
@@ -20,12 +20,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "CSV++"
             VALUE "FileDescription", "CSV Editor with Table View"
-            VALUE "FileVersion", "1.0.0.0"
+            VALUE "FileVersion", "1.0.0.3"
             VALUE "InternalName", "CSVPlusPlus"
             VALUE "LegalCopyright", "Copyright (C) 2026"
             VALUE "OriginalFilename", "CSVPlusPlus.exe"
             VALUE "ProductName", "CSV++"
-            VALUE "ProductVersion", "1.0.0.0"
+            VALUE "ProductVersion", "1.0.0.3"
         END
     END
     BLOCK "VarFileInfo"
