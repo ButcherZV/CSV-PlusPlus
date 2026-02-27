@@ -26,6 +26,7 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_MENU(ID_NEW, MainFrame::OnNew)
     EVT_MENU(ID_OPEN, MainFrame::OnOpen)
     EVT_MENU(ID_SAVE, MainFrame::OnSave)
+    EVT_MENU(ID_SAVE_AS, MainFrame::OnSaveAs)
     EVT_MENU(ID_CLOSE, MainFrame::OnClose)
     EVT_MENU(wxID_EXIT, MainFrame::OnQuit)
     EVT_MENU(ID_UNDO, MainFrame::OnUndo)
@@ -141,6 +142,7 @@ void MainFrame::CreateMenuBar() {
     fileMenu->Append(ID_NEW, Translate("menu_new", currentLanguage), Translate("menu_new_desc", currentLanguage));
     fileMenu->Append(ID_OPEN, Translate("menu_open", currentLanguage), Translate("menu_open_desc", currentLanguage));
     fileMenu->Append(ID_SAVE, Translate("menu_save", currentLanguage), Translate("menu_save_desc", currentLanguage));
+    fileMenu->Append(ID_SAVE_AS, Translate("menu_save_as", currentLanguage), Translate("menu_save_as_desc", currentLanguage));
     fileMenu->Append(ID_CLOSE, Translate("menu_close", currentLanguage), Translate("menu_close_desc", currentLanguage));
     fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT, Translate("menu_exit", currentLanguage), Translate("menu_exit_desc", currentLanguage));
@@ -256,8 +258,6 @@ void MainFrame::OnNew(wxCommandEvent& event) {
     
     ClearGrid();
     currentFile.Clear();
-    currentEncoding = Encoding::UTF8;
-    currentSeparator = ',';
     hasHeaderRow = false;
     
     // Create empty grid
@@ -388,6 +388,13 @@ void MainFrame::LoadCSVFile(const wxString& filename, Encoding encoding,
                 grid->SetCellValue(row - startRow, col, data[row][col]);
             }
         }
+        
+        // Auto-size columns to fit content
+        grid->AutoSizeColumns(false);
+        for (int col = 0; col < cols; ++col) {
+            int width = grid->GetColSize(col);
+            grid->SetColSize(col, width + width / 5);
+        }
     }
     
     currentFile = filename;
@@ -420,6 +427,18 @@ void MainFrame::OnSave(wxCommandEvent& event) {
     }
     
     SaveCSVFile(currentFile);
+}
+
+void MainFrame::OnSaveAs(wxCommandEvent& event) {
+    wxFileDialog saveFileDialog(this, Translate("dialog_save_title", currentLanguage), "", "",
+                               "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt",
+                               wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    
+    if (saveFileDialog.ShowModal() == wxID_CANCEL) {
+        return;
+    }
+    
+    SaveCSVFile(saveFileDialog.GetPath());
 }
 
 void MainFrame::SaveCSVFile(const wxString& filename) {
@@ -1058,6 +1077,11 @@ void MainFrame::OnFontSizeChange(wxCommandEvent& event) {
         wxString sizeStr = fontSizeChoice->GetString(selection);
         currentFontSize = wxAtoi(sizeStr);
         
+        // Save font size setting to registry
+        wxConfig config("CSV++");
+        config.Write("FontSize", (long)currentFontSize);
+        config.Flush();
+        
         // Apply font size to all cells
         wxFont font = grid->GetDefaultCellFont();
         font.SetPointSize(currentFontSize);
@@ -1068,8 +1092,19 @@ void MainFrame::OnFontSizeChange(wxCommandEvent& event) {
         labelFont.SetPointSize(currentFontSize);
         grid->SetLabelFont(labelFont);
         
-        // Apply grid dimensions (rows and columns) based on font size
-        ApplyGridDimensions();
+        // Apply row heights and column label height
+        int rowHeight = currentFontSize * 2 + 8;
+        for (int i = 0; i < grid->GetNumberRows(); ++i) {
+            grid->SetRowSize(i, rowHeight);
+        }
+        grid->SetColLabelSize(rowHeight);
+        
+        // Auto-size columns to fit content with 20% extra space
+        grid->AutoSizeColumns(false);
+        for (int col = 0; col < grid->GetNumberCols(); ++col) {
+            int width = grid->GetColSize(col);
+            grid->SetColSize(col, width + width / 5);
+        }
         
         // Refresh grid
         grid->ForceRefresh();

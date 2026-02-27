@@ -94,9 +94,26 @@ if !PACKAGE! equ 1 (
     
     if "!NEED_DLLS!"=="1" (
         echo Copying required DLLs...
-        copy C:\msys64\ucrt64\bin\libwinpthread-1.dll build\ >nul 2>&1
-        if exist C:\msys64\ucrt64\bin\libstdc++-6.dll copy C:\msys64\ucrt64\bin\libstdc++-6.dll build\ >nul 2>&1
-        if exist C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll copy C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll build\ >nul 2>&1
+        copy C:\msys64\ucrt64\bin\libwinpthread-1.dll build\
+        copy "C:\msys64\ucrt64\bin\libstdc++-6.dll" build\
+        copy C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll build\
+        copy C:\msys64\ucrt64\bin\liblzma-5.dll build\
+        copy C:\msys64\ucrt64\bin\libpcre2-16-0.dll build\
+        copy C:\msys64\ucrt64\bin\zlib1.dll build\
+        copy C:\msys64\ucrt64\bin\libjpeg-8.dll build\
+        copy C:\msys64\ucrt64\bin\libpng16-16.dll build\
+        copy C:\msys64\ucrt64\bin\libtiff-6.dll build\
+        copy C:\msys64\ucrt64\bin\libjbig-0.dll build\
+        copy C:\msys64\ucrt64\bin\libLerc.dll build\
+        copy C:\msys64\ucrt64\bin\libwebp-7.dll build\
+        copy C:\msys64\ucrt64\bin\libdeflate.dll build\
+        copy C:\msys64\ucrt64\bin\libzstd.dll build\
+        copy C:\msys64\ucrt64\bin\libsharpyuv-0.dll build\
+        
+        echo Copying wxWidgets DLLs...
+        copy C:\msys64\ucrt64\bin\wxbase32u_gcc_custom.dll build\
+        copy C:\msys64\ucrt64\bin\wxmsw32u_core_gcc_custom.dll build\
+        copy C:\msys64\ucrt64\bin\wxmsw32u_html_gcc_custom.dll build\
     )
     
     echo Package created in build\

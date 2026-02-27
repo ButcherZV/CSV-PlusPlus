@@ -142,7 +142,6 @@ wxString CSVParser::EscapeField(const wxString& field) {
 }
 
 wxString CSVParser::UnescapeField(const wxString& field) {
-    // Already handled in ParseLine
     return field;
 }
 
@@ -196,6 +195,29 @@ bool CSVParser::ReadFile(const wxString& filename, std::vector<std::vector<wxStr
 
 bool CSVParser::WriteFile(const wxString& filename, const std::vector<std::vector<wxString>>& data,
                          wxChar separator, Encoding encoding) {
+    // For ANSI encoding, use wxFile directly instead of wxTextFile
+    if (encoding == Encoding::ANSI) {
+        wxFile file(filename, wxFile::write);
+        if (!file.IsOpened()) {
+            return false;
+        }
+        
+        wxCSConv conv(wxFONTENCODING_SYSTEM);
+        
+        for (const auto& row : data) {
+            wxString line = FormatLine(row, separator) + "\r\n";
+            // Convert to ANSI using system's default code page
+            const wxCharBuffer buffer = line.mb_str(conv);
+            if (buffer.length() > 0) {
+                file.Write(buffer.data(), buffer.length());
+            }
+        }
+        
+        file.Close();
+        return true;
+    }
+    
+    // For other encodings, use wxTextFile
     wxTextFile file;
     
     // Create or open file
@@ -234,9 +256,6 @@ bool CSVParser::WriteFile(const wxString& filename, const std::vector<std::vecto
         success = file.Write(wxTextFileType_Dos, wxMBConvUTF16LE());
     } else if (encoding == Encoding::UTF16_BE) {
         success = file.Write(wxTextFileType_Dos, wxMBConvUTF16BE());
-    } else {
-        // ANSI
-        success = file.Write(wxTextFileType_Dos);
     }
     
     file.Close();
