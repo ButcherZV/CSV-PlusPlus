@@ -80,18 +80,18 @@ wxString Translate(const wxString& key, Language language) {
         if (key == "about_github") return wxString::FromUTF8("GitHub repo:");
         
         if (key == "warning_title") return wxString::FromUTF8("Upozorenje");
-        if (key == "warning_rows_have_data") return wxString::FromUTF8("Redovi koje bri\u0161ete sadr\u017ee podatke. Da li ste sigurni da \u017eelite da ih obri\u0161ete?");
-        if (key == "warning_cols_have_data") return wxString::FromUTF8("Kolone koje bri\u0161ete sadr\u017ee podatke. Da li ste sigurni da \u017eelite da ih obri\u0161ete?");
+        if (key == "warning_rows_have_data") return wxString::FromUTF8("Redovi koje brišete sadrže podatke. Da li ste sigurni da želite da ih obrišete?");
+        if (key == "warning_cols_have_data") return wxString::FromUTF8("Kolone koje brišete sadrže podatke. Da li ste sigurni da želite da ih obrišete?");
         
-        if (key == "error_title") return wxString::FromUTF8("Gre\u0161ka");
+        if (key == "error_title") return wxString::FromUTF8("Greška");
         if (key == "success_title") return wxString::FromUTF8("Uspeh");
-        if (key == "msg_file_read_failed") return wxString::FromUTF8("Gre\u0161ka pri \u010ditanju datoteke!");
-        if (key == "msg_file_load_failed") return wxString::FromUTF8("Gre\u0161ka pri u\u010ditavanju CSV datoteke!");
+        if (key == "msg_file_read_failed") return wxString::FromUTF8("Greška pri čitanju datoteke!");
+        if (key == "msg_file_load_failed") return wxString::FromUTF8("Greška pri učitavanju CSV datoteke!");
         if (key == "msg_file_empty") return wxString::FromUTF8("CSV datoteka je prazna!");
-        if (key == "msg_file_saved") return wxString::FromUTF8("Datoteka je uspe\u0161no sa\u010duvana!");
-        if (key == "msg_file_save_failed") return wxString::FromUTF8("Gre\u0161ka pri \u010duvanju datoteke!");
+        if (key == "msg_file_saved") return wxString::FromUTF8("Datoteka je uspešno sačuvana!");
+        if (key == "msg_file_save_failed") return wxString::FromUTF8("Greška pri čuvanju datoteke!");
         if (key == "dialog_open_title") return wxString::FromUTF8("Otvori CSV datoteku");
-        if (key == "dialog_save_title") return wxString::FromUTF8("Sa\u010duvaj CSV datoteku");
+        if (key == "dialog_save_title") return wxString::FromUTF8("Sačuvaj CSV datoteku");
         if (key == "dialog_csv_options_title") return wxString::FromUTF8("Opcije uvoza CSV");
         if (key == "dialog_encoding_label") return wxString::FromUTF8("Kodiranje datoteke:");
         if (key == "dialog_separator_label") return wxString::FromUTF8("Separator polja:");
