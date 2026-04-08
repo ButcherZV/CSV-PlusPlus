@@ -14,6 +14,8 @@ wxString Translate(const wxString& key, Language language) {
         if (key == "menu_save_as_desc") return wxString::FromUTF8("Sačuvaj CSV datoteku pod novim imenom");
         if (key == "menu_close") return wxString::FromUTF8("&Zatvori");
         if (key == "menu_close_desc") return wxString::FromUTF8("Zatvori trenutnu datoteku");
+        if (key == "menu_recent_files") return wxString::FromUTF8("Nedavni fajlovi");
+        if (key == "menu_no_recent_files") return wxString::FromUTF8("(Nema nedavnih fajlova)");
         if (key == "menu_exit") return wxString::FromUTF8("&Izlaz");
         if (key == "menu_exit_desc") return wxString::FromUTF8("Izlaz iz aplikacije");
         if (key == "menu_settings") return wxString::FromUTF8("&Podešavanja");
@@ -111,6 +113,8 @@ wxString Translate(const wxString& key, Language language) {
     if (key == "menu_save_as_desc") return "Save CSV file with a new name";
     if (key == "menu_close") return "&Close";
     if (key == "menu_close_desc") return "Close current file";
+    if (key == "menu_recent_files") return "Recent Files";
+    if (key == "menu_no_recent_files") return "(No recent files)";
     if (key == "menu_exit") return "E&xit";
     if (key == "menu_exit_desc") return "Exit application";
     if (key == "menu_settings") return "&Settings";

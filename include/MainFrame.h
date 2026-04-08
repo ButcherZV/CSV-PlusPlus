@@ -62,6 +62,10 @@ private:
     // Language support
     Language currentLanguage;
     
+    // Recent files
+    wxArrayString recentFiles;
+    wxMenu* recentFilesMenu = nullptr;
+    
     // Menu IDs
     enum {
         ID_NEW = wxID_HIGHEST + 1,
@@ -91,7 +95,9 @@ private:
         ID_HELP_ABOUT,
         ID_ROWS_SPIN,
         ID_COLS_SPIN,
-        ID_RENAME_COLUMN
+        ID_RENAME_COLUMN,
+        ID_RECENT_FILE_BASE,
+        ID_RECENT_FILE_LAST = ID_RECENT_FILE_BASE + 9
     };
     
     // UI Creation
@@ -106,6 +112,7 @@ private:
     void OnSaveAs(wxCommandEvent& event);
     void OnClose(wxCommandEvent& event);
     void OnQuit(wxCommandEvent& event);
+    void OnRecentFile(wxCommandEvent& event);
     
     // Edit operations
     void OnUndo(wxCommandEvent& event);
@@ -157,6 +164,8 @@ private:
     void ApplyGridDimensions();
     void UpdateToolbarCounts();
     int GetDefaultColumnWidth() const;
+    void AddRecentFile(const wxString& filename);
+    void UpdateRecentFilesMenu();
 };
 
 #endif // MAINFRAME_H

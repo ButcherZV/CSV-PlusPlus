@@ -11,6 +11,8 @@
 #include <wx/html/htmlwin.h>
 #include <wx/hyperlink.h>
 #include <wx/spinctrl.h>
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
 
 // FileDropTarget implementation
 bool FileDropTarget::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenames) {
@@ -52,6 +54,7 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_SPINCTRL(ID_ROWS_SPIN, MainFrame::OnRowsSpinChange)
     EVT_SPINCTRL(ID_COLS_SPIN, MainFrame::OnColsSpinChange)
     EVT_MENU(ID_RENAME_COLUMN, MainFrame::OnRenameColumn)
+    EVT_MENU_RANGE(ID_RECENT_FILE_BASE, ID_RECENT_FILE_LAST, MainFrame::OnRecentFile)
     EVT_GRID_EDITOR_SHOWN(MainFrame::OnEditorShown)
     EVT_GRID_CELL_CHANGED(MainFrame::OnCellChanged)
     EVT_GRID_LABEL_LEFT_DCLICK(MainFrame::OnLabelDoubleClick)
@@ -78,6 +81,14 @@ MainFrame::MainFrame(const wxString& title)
     long savedLang = 0;
     if (config.Read("Language", &savedLang)) {
         currentLanguage = (Language)savedLang;
+    }
+    
+    // Load recent files from registry
+    for (int i = 0; i < 10; i++) {
+        wxString file;
+        if (config.Read(wxString::Format("RecentFiles/File%d", i), &file) && !file.IsEmpty()) {
+            recentFiles.Add(file);
+        }
     }
     
     // Set window icon
@@ -144,6 +155,10 @@ void MainFrame::CreateMenuBar() {
     fileMenu->Append(ID_SAVE, Translate("menu_save", currentLanguage), Translate("menu_save_desc", currentLanguage));
     fileMenu->Append(ID_SAVE_AS, Translate("menu_save_as", currentLanguage), Translate("menu_save_as_desc", currentLanguage));
     fileMenu->Append(ID_CLOSE, Translate("menu_close", currentLanguage), Translate("menu_close_desc", currentLanguage));
+    fileMenu->AppendSeparator();
+    recentFilesMenu = new wxMenu();
+    fileMenu->AppendSubMenu(recentFilesMenu, Translate("menu_recent_files", currentLanguage));
+    UpdateRecentFilesMenu();
     fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT, Translate("menu_exit", currentLanguage), Translate("menu_exit_desc", currentLanguage));
     menuBar->Append(fileMenu, Translate("menu_file", currentLanguage));
@@ -389,11 +404,12 @@ void MainFrame::LoadCSVFile(const wxString& filename, Encoding encoding,
             }
         }
         
-        // Auto-size columns to fit content
+        // Auto-size columns to fit content, with a minimum width
         grid->AutoSizeColumns(false);
+        int minColWidth = (currentFontSize * 60) / 8;
         for (int col = 0; col < cols; ++col) {
             int width = grid->GetColSize(col);
-            grid->SetColSize(col, width + width / 5);
+            grid->SetColSize(col, wxMax(width + width / 5, minColWidth));
         }
     }
     
@@ -405,6 +421,8 @@ void MainFrame::LoadCSVFile(const wxString& filename, Encoding encoding,
     
     undoStack.clear();
     redoStack.clear();
+    
+    AddRecentFile(filename);
     
     UpdateStatusBar();
     UpdateMenuChecks();
@@ -808,6 +826,27 @@ void MainFrame::OnRenameColumn(wxCommandEvent& event) {
 }
 
 void MainFrame::OnGridKeyDown(wxKeyEvent& event) {
+    // Ctrl+V: paste into selected cell without requiring edit mode
+    if (event.ControlDown() && event.GetKeyCode() == 'V') {
+        if (!grid->IsCellEditControlEnabled()) {
+            int row = grid->GetGridCursorRow();
+            int col = grid->GetGridCursorCol();
+            if (row >= 0 && col >= 0) {
+                if (wxTheClipboard->Open()) {
+                    if (wxTheClipboard->IsSupported(wxDF_TEXT)) {
+                        wxTextDataObject data;
+                        wxTheClipboard->GetData(data);
+                        SaveState();
+                        grid->SetCellValue(row, col, data.GetText());
+                        SetDirty(true);
+                    }
+                    wxTheClipboard->Close();
+                }
+                return; // consume event, don't propagate
+            }
+        }
+    }
+    
     if (event.GetKeyCode() == WXK_TAB) {
         int row = grid->GetGridCursorRow();
         int col = grid->GetGridCursorCol();
@@ -1099,11 +1138,12 @@ void MainFrame::OnFontSizeChange(wxCommandEvent& event) {
         }
         grid->SetColLabelSize(rowHeight);
         
-        // Auto-size columns to fit content with 20% extra space
+        // Auto-size columns to fit content with 20% extra space, with a minimum width
         grid->AutoSizeColumns(false);
+        int minColWidth = (currentFontSize * 60) / 8;
         for (int col = 0; col < grid->GetNumberCols(); ++col) {
             int width = grid->GetColSize(col);
-            grid->SetColSize(col, width + width / 5);
+            grid->SetColSize(col, wxMax(width + width / 5, minColWidth));
         }
         
         // Refresh grid
@@ -1128,10 +1168,13 @@ void MainFrame::OnRowsSpinChange(wxSpinEvent& event) {
     if (newRows == curRows) return;
     
     if (newRows > curRows) {
-        // Add rows
+        // Add rows - only set row height for new rows, leave column widths untouched
         SaveState();
         grid->AppendRows(newRows - curRows);
-        ApplyGridDimensions();
+        int rowHeight = currentFontSize * 2 + 8;
+        for (int r = curRows; r < newRows; ++r) {
+            grid->SetRowSize(r, rowHeight);
+        }
         UpdateStatusBar();
         SetDirty(true);
     } else {
@@ -1171,7 +1214,7 @@ void MainFrame::OnColsSpinChange(wxSpinEvent& event) {
     if (newCols == curCols) return;
     
     if (newCols > curCols) {
-        // Add columns
+        // Add columns - only set width for new columns, leave existing widths untouched
         SaveState();
         grid->AppendCols(newCols - curCols);
         // Set labels for new columns
@@ -1182,7 +1225,11 @@ void MainFrame::OnColsSpinChange(wxSpinEvent& event) {
                 grid->SetColLabelValue(i, wxString::Format("Col%d", i + 1));
             }
         }
-        ApplyGridDimensions();
+        // Only apply default width to the newly-added columns
+        int colWidth = (currentFontSize * 60) / 8;
+        for (int i = curCols; i < newCols; i++) {
+            grid->SetColSize(i, colWidth);
+        }
         UpdateStatusBar();
         SetDirty(true);
     } else {
@@ -1321,3 +1368,61 @@ void MainFrame::OnAbout(wxCommandEvent& event) {
     dlg->Destroy();
 }
 
+void MainFrame::OnRecentFile(wxCommandEvent& event) {
+    int idx = event.GetId() - ID_RECENT_FILE_BASE;
+    if (idx < 0 || idx >= (int)recentFiles.GetCount()) return;
+    
+    wxString filename = recentFiles[idx];
+    if (!wxFileExists(filename)) {
+        wxMessageBox(Translate("msg_file_read_failed", currentLanguage),
+                     Translate("error_title", currentLanguage), wxOK | wxICON_ERROR);
+        recentFiles.RemoveAt(idx);
+        wxConfig config("CSV++");
+        config.DeleteGroup("RecentFiles");
+        for (size_t i = 0; i < recentFiles.GetCount(); i++) {
+            config.Write(wxString::Format("RecentFiles/File%d", (int)i), recentFiles[i]);
+        }
+        config.Flush();
+        UpdateRecentFilesMenu();
+        return;
+    }
+    
+    if (!PromptSaveChanges()) return;
+    OpenFileFromDrop(filename);
+}
+
+void MainFrame::AddRecentFile(const wxString& filename) {
+    int idx = recentFiles.Index(filename);
+    if (idx != wxNOT_FOUND) {
+        recentFiles.RemoveAt(idx);
+    }
+    recentFiles.Insert(filename, 0);
+    while ((int)recentFiles.GetCount() > 10) {
+        recentFiles.RemoveAt(recentFiles.GetCount() - 1);
+    }
+    wxConfig config("CSV++");
+    config.DeleteGroup("RecentFiles");
+    for (size_t i = 0; i < recentFiles.GetCount(); i++) {
+        config.Write(wxString::Format("RecentFiles/File%d", (int)i), recentFiles[i]);
+    }
+    config.Flush();
+    UpdateRecentFilesMenu();
+}
+
+void MainFrame::UpdateRecentFilesMenu() {
+    if (!recentFilesMenu) return;
+    while (recentFilesMenu->GetMenuItemCount() > 0) {
+        recentFilesMenu->Destroy(recentFilesMenu->FindItemByPosition(0));
+    }
+    if (recentFiles.IsEmpty()) {
+        wxMenuItem* item = recentFilesMenu->Append(wxID_ANY,
+            Translate("menu_no_recent_files", currentLanguage));
+        item->Enable(false);
+    } else {
+        for (size_t i = 0; i < recentFiles.GetCount() && i < 10; i++) {
+            wxString label = wxString::Format("&%d  %s",
+                (int)(i + 1), wxFileName(recentFiles[i]).GetFullName());
+            recentFilesMenu->Append(ID_RECENT_FILE_BASE + (int)i, label);
+        }
+    }
+}
